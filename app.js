@@ -4,14 +4,14 @@ require("dotenv").config();
 var createError = require("http-errors");
 var express = require("express");
 const cors = require("cors");
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpecs = require("./config/swagger");
 
 const { mongooseConnection } = require("./config/db");
 const session = require("express-session");
 
 const loggerMiddleware = require("./middlewares/logger.mw");
 const responseMiddleware = require("./middlewares/response.mw");
+
+require("message-bus/src/index");
 
 var app = express();
 
@@ -42,7 +42,7 @@ app.get("/", (req, res) => {
   res.render("index", { title: "Portal Service" });
 });
 
-app.use("/api", require("./routes/index"));
+app.use("/", require("./routes/index"));
 
 app.use(function (req, res, next) {
   next(createError(404));
