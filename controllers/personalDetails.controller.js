@@ -3,7 +3,27 @@ const personalDetailsService = require("../services/personalDetails.service");
 class PersonalDetailsController {
   async createPersonalDetails(req, res) {
     try {
-      const personalDetails = await personalDetailsService.createPersonalDetails(req.body);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // Check if personal details already exist for this user
+      const existingPersonalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (existingPersonalDetails) {
+        return res.status(409).json({
+          success: false,
+          message: "Personal details already exist for this user. Use PUT to update instead.",
+          data: existingPersonalDetails
+        });
+      }
+      
+      // Add userId to request body
+      const personalDetailsData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const personalDetails = await personalDetailsService.createPersonalDetails(personalDetailsData);
 
       return res.status(201).json({
         success: true,
@@ -42,7 +62,8 @@ class PersonalDetailsController {
 
   async getPersonalDetailsByUserId(req, res) {
     try {
-      const { userId } = req.params;
+      // Extract user ID from JWT token
+      const userId = req.user.id;
       const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
 
       return res.status(200).json({
