@@ -1,10 +1,17 @@
 const professionalDetailsService = require("../services/professionalDetails.service");
 
 class ProfessionalDetailsController {
-  // Create new professional details
   async createProfessionalDetails(req, res) {
     try {
-      const professionalDetails = await professionalDetailsService.createProfessionalDetails(req.body);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      const professionalDetailsData = {
+        ...req.body,
+        userId: userId
+      };
+
+      const professionalDetails = await professionalDetailsService.createProfessionalDetails(professionalDetailsData);
 
       return res.status(201).json({
         success: true,
@@ -21,11 +28,24 @@ class ProfessionalDetailsController {
     }
   }
 
-  // Get professional details by ID
   async getProfessionalDetailsById(req, res) {
     try {
-      const { id } = req.params;
-      const professionalDetails = await professionalDetailsService.getProfessionalDetailsById(id);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get professional details by profileId
+      const professionalDetails = await professionalDetailsService.getProfessionalDetailsByProfileId(personalDetails._id);
 
       return res.status(200).json({
         success: true,
@@ -42,11 +62,24 @@ class ProfessionalDetailsController {
     }
   }
 
-  // Get professional details by profile ID
   async getProfessionalDetailsByProfileId(req, res) {
     try {
-      const { profileId } = req.params;
-      const professionalDetails = await professionalDetailsService.getProfessionalDetailsByProfileId(profileId);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get professional details by profileId
+      const professionalDetails = await professionalDetailsService.getProfessionalDetailsByProfileId(personalDetails._id);
 
       return res.status(200).json({
         success: true,
@@ -63,11 +96,20 @@ class ProfessionalDetailsController {
     }
   }
 
-  // Update professional details
   async updateProfessionalDetails(req, res) {
     try {
-      const { id } = req.params;
-      const professionalDetails = await professionalDetailsService.updateProfessionalDetails(id, req.body);
+      const userId = req.user.id;
+      
+      const existingDetails = await professionalDetailsService.getProfessionalDetailsByUserId(userId);
+      
+      if (!existingDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Professional details not found for this user",
+        });
+      }
+
+      const professionalDetails = await professionalDetailsService.updateProfessionalDetails(existingDetails._id, req.body);
 
       return res.status(200).json({
         success: true,
@@ -84,11 +126,20 @@ class ProfessionalDetailsController {
     }
   }
 
-  // Soft delete professional details
   async deleteProfessionalDetails(req, res) {
     try {
-      const { id } = req.params;
-      const professionalDetails = await professionalDetailsService.deleteProfessionalDetails(id);
+      const userId = req.user.id;
+      
+      const existingDetails = await professionalDetailsService.getProfessionalDetailsByUserId(userId);
+      
+      if (!existingDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Professional details not found for this user",
+        });
+      }
+
+      const professionalDetails = await professionalDetailsService.deleteProfessionalDetails(existingDetails._id);
 
       return res.status(200).json({
         success: true,
@@ -126,7 +177,6 @@ class ProfessionalDetailsController {
     }
   }
 
-  // Hard delete professional details
   async hardDeleteProfessionalDetails(req, res) {
     try {
       const { id } = req.params;
