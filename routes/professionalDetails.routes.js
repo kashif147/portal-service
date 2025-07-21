@@ -3,12 +3,11 @@ const router = express.Router();
 const professionalDetailsController = require("../controllers/professionalDetails.controller");
 const verifyJWT = require("../middlewares/verifyJWT");
 
-router.post("/", verifyJWT, professionalDetailsController.createProfessionalDetails);
-router.get("/:id", verifyJWT, professionalDetailsController.getProfessionalDetailsById);
-router.get("/profile/:profileId", verifyJWT, professionalDetailsController.getProfessionalDetailsByProfileId);
-router.put("/:id", verifyJWT, professionalDetailsController.updateProfessionalDetails);
-router.delete("/:id", verifyJWT, professionalDetailsController.deleteProfessionalDetails);
-router.delete("/:id/hard-delete", verifyJWT, professionalDetailsController.hardDeleteProfessionalDetails);
-router.patch("/:id/restore", verifyJWT, professionalDetailsController.restoreProfessionalDetails);
+router.post("/", verifyJWT, professionalDetailsController.createProfessionalDetails); //token only
+router.get("/", verifyJWT, professionalDetailsController.getProfessionalDetailsById); //token only
+router.put("/", verifyJWT, professionalDetailsController.updateProfessionalDetails); //token only
+router.delete("/", verifyJWT, professionalDetailsController.deleteProfessionalDetails); //token only
+router.delete("/hard-delete", verifyJWT, professionalDetailsController.hardDeleteProfessionalDetails); //token only
+router.patch("/restore", verifyJWT, professionalDetailsController.restoreProfessionalDetails); //token only
 
 module.exports = router;

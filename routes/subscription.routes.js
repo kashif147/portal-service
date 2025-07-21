@@ -3,14 +3,14 @@ const router = express.Router();
 const subscriptionController = require("../controllers/subscription.controller");
 const verifyJWT = require("../middlewares/verifyJWT");
 
-router.post("/", verifyJWT, subscriptionController.createSubscription);
-router.get("/:id", verifyJWT, subscriptionController.getSubscriptionById);
-router.get("/profile/:profileId", verifyJWT, subscriptionController.getSubscriptionByProfileId);
-router.get("/", verifyJWT, subscriptionController.getAllSubscriptions);
-router.put("/:id", verifyJWT, subscriptionController.updateSubscription);
-router.delete("/:id", verifyJWT, subscriptionController.deleteSubscription);
-router.delete("/:id/hard-delete", verifyJWT, subscriptionController.hardDeleteSubscription);
-router.patch("/:id/restore", verifyJWT, subscriptionController.restoreSubscription);
+router.post("/", verifyJWT, subscriptionController.createSubscription); //token only
+router.get("/", verifyJWT, subscriptionController.getSubscriptionById); //token only
+router.get("/profile", verifyJWT, subscriptionController.getSubscriptionByProfileId); //token only
+router.get("/all", verifyJWT, subscriptionController.getAllSubscriptions);
+router.put("/", verifyJWT, subscriptionController.updateSubscription); //token only
+router.delete("/", verifyJWT, subscriptionController.deleteSubscription); //token only
+router.delete("/hard-delete", verifyJWT, subscriptionController.hardDeleteSubscription); //token only
+router.patch("/restore", verifyJWT, subscriptionController.restoreSubscription); //token only
 router.get(
   "/membership-category/:membershipCategory",
   verifyJWT,
