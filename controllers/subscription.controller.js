@@ -4,7 +4,39 @@ class SubscriptionController {
   // Create new subscription
   async createSubscription(req, res) {
     try {
-      const subscription = await subscriptionService.createSubscription(req.body);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user. Please create personal details first.",
+        });
+      }
+      
+      // Check if subscription already exists for this profile
+      const existingSubscription = await subscriptionService.getSubscriptionByProfileId(personalDetails._id);
+      
+      if (existingSubscription) {
+        return res.status(409).json({
+          success: false,
+          message: "Subscription already exists for this user. Use PUT /api/subscriptions to update instead.",
+          data: existingSubscription,
+          instructions: "To update your subscription, use PUT method with the same endpoint and include your updated data in the request body."
+        });
+      }
+      
+      // Add profileId to request body
+      const subscriptionData = {
+        ...req.body,
+        profileId: personalDetails._id
+      };
+
+      const subscription = await subscriptionService.createSubscription(subscriptionData);
 
       return res.status(201).json({
         success: true,
@@ -24,8 +56,22 @@ class SubscriptionController {
   // Get subscription by ID
   async getSubscriptionById(req, res) {
     try {
-      const { id } = req.params;
-      const subscription = await subscriptionService.getSubscriptionById(id);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get subscription by profileId
+      const subscription = await subscriptionService.getSubscriptionByProfileId(personalDetails._id);
 
       return res.status(200).json({
         success: true,
@@ -45,8 +91,22 @@ class SubscriptionController {
   // Get subscription by profile ID
   async getSubscriptionByProfileId(req, res) {
     try {
-      const { profileId } = req.params;
-      const subscription = await subscriptionService.getSubscriptionByProfileId(profileId);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get subscription by profileId
+      const subscription = await subscriptionService.getSubscriptionByProfileId(personalDetails._id);
 
       return res.status(200).json({
         success: true,
@@ -98,8 +158,31 @@ class SubscriptionController {
   // Update subscription
   async updateSubscription(req, res) {
     try {
-      const { id } = req.params;
-      const subscription = await subscriptionService.updateSubscription(id, req.body);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get subscription by profileId
+      const existingSubscription = await subscriptionService.getSubscriptionByProfileId(personalDetails._id);
+      
+      if (!existingSubscription) {
+        return res.status(404).json({
+          success: false,
+          message: "Subscription not found for this user",
+        });
+      }
+
+      const subscription = await subscriptionService.updateSubscription(existingSubscription._id, req.body);
 
       return res.status(200).json({
         success: true,
@@ -119,8 +202,31 @@ class SubscriptionController {
   // Soft delete subscription
   async deleteSubscription(req, res) {
     try {
-      const { id } = req.params;
-      const subscription = await subscriptionService.deleteSubscription(id);
+      // Extract user ID from JWT token
+      const userId = req.user.id;
+      
+      // First get personal details to get the profileId
+      const personalDetailsService = require("../services/personalDetails.service");
+      const personalDetails = await personalDetailsService.getPersonalDetailsByUserId(userId);
+      
+      if (!personalDetails) {
+        return res.status(404).json({
+          success: false,
+          message: "Personal details not found for this user",
+        });
+      }
+      
+      // Get subscription by profileId
+      const existingSubscription = await subscriptionService.getSubscriptionByProfileId(personalDetails._id);
+      
+      if (!existingSubscription) {
+        return res.status(404).json({
+          success: false,
+          message: "Subscription not found for this user",
+        });
+      }
+
+      const subscription = await subscriptionService.deleteSubscription(existingSubscription._id);
 
       return res.status(200).json({
         success: true,
@@ -220,6 +326,34 @@ class SubscriptionController {
       return res.status(500).json({
         success: false,
         message: "Failed to retrieve inactive subscriptions",
+        error: error.message,
+      });
+    }
+  }
+
+  // Get subscriptions by membership category
+  async getSubscriptionsByMembershipCategory(req, res) {
+    try {
+      const { membershipCategory } = req.params;
+      const { page = 1, limit = 10 } = req.query;
+
+      const result = await subscriptionService.getSubscriptionsByMembershipCategory(
+        membershipCategory,
+        parseInt(page),
+        parseInt(limit)
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Subscriptions retrieved successfully by membership category",
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      console.error("Get Subscriptions by Membership Category Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve subscriptions by membership category",
         error: error.message,
       });
     }
