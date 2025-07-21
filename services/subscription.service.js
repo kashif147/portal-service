@@ -19,7 +19,7 @@ class SubscriptionService {
   // Get subscription by ID
   async getSubscriptionById(id) {
     try {
-      const subscription = await Subscription.findById(id).populate("profileId", "personalInfo contactInfo");
+      const subscription = await Subscription.findById(id);
 
       if (!subscription) {
         throw new Error("Subscription not found");
@@ -34,7 +34,7 @@ class SubscriptionService {
   // Get subscription by profile ID
   async getSubscriptionByProfileId(profileId) {
     try {
-      const subscription = await Subscription.findOne({ profileId }).populate("profileId", "personalInfo contactInfo");
+      const subscription = await Subscription.findOne({ profileId });
 
       if (!subscription) {
         throw new Error("Subscription not found for this profile");
@@ -46,13 +46,25 @@ class SubscriptionService {
     }
   }
 
+  // Get subscription by user ID
+  async getSubscriptionByUserId(userId) {
+    try {
+      const subscription = await Subscription.findOne({ userId });
+
+      if (!subscription) {
+        throw new Error("Subscription not found for this user");
+      }
+
+      return subscription;
+    } catch (error) {
+      throw new Error(`Error fetching subscription: ${error.message}`);
+    }
+  }
+
   // Get subscription by membership number
   async getSubscriptionByMembershipNo(membershipNo) {
     try {
-      const subscription = await Subscription.findOne({ membershipNo }).populate(
-        "profileId",
-        "personalInfo contactInfo"
-      );
+      const subscription = await Subscription.findOne({ membershipNo });
 
       if (!subscription) {
         throw new Error("Subscription not found for this membership number");
@@ -71,14 +83,14 @@ class SubscriptionService {
       const query = { "meta.deleted": false, "meta.isActive": true };
 
       // Add filters
-      if (filters.subscriptionProduct) query.subscriptionProduct = filters.subscriptionProduct;
-      if (filters.membershipCategory) query.membershipCategory = filters.membershipCategory;
       if (filters.paymentType) query.paymentType = filters.paymentType;
-      if (filters.paymentFrequency) query.paymentFrequency = filters.paymentFrequency;
+      if (filters.membershipCategory) query.membershipCategory = filters.membershipCategory;
+      if (filters.membershipNo) query.membershipNo = filters.membershipNo;
+      if (filters.payrollNo) query.payrollNo = filters.payrollNo;
       if (filters.dateJoined) query.dateJoined = filters.dateJoined;
+      if (filters.dateLeft) query.dateLeft = filters.dateLeft;
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -112,7 +124,7 @@ class SubscriptionService {
       const subscription = await Subscription.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
-      }).populate("profileId", "personalInfo contactInfo");
+      });
 
       if (!subscription) {
         throw new Error("Subscription not found");
@@ -193,15 +205,14 @@ class SubscriptionService {
         "meta.deleted": false,
         "meta.isActive": true,
         $or: [
-          { subscriptionProduct: { $regex: searchTerm, $options: "i" } },
           { membershipNo: { $regex: searchTerm, $options: "i" } },
           { membershipCategory: { $regex: searchTerm, $options: "i" } },
+          { paymentType: { $regex: searchTerm, $options: "i" } },
           { payrollNo: { $regex: searchTerm, $options: "i" } },
         ],
       };
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -233,7 +244,6 @@ class SubscriptionService {
       };
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -265,7 +275,6 @@ class SubscriptionService {
       };
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -297,7 +306,6 @@ class SubscriptionService {
       };
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -325,14 +333,13 @@ class SubscriptionService {
       const query = {
         "meta.deleted": false,
         "meta.isActive": true,
-        dateLeft: { $exists: true, $ne: null },
+        dateLeft: { $exists: true },
       };
 
       const subscriptions = await Subscription.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
-        .sort({ dateLeft: -1 });
+        .sort({ "meta.createdAt": -1 });
 
       const total = await Subscription.countDocuments(query);
 
@@ -353,32 +360,59 @@ class SubscriptionService {
   // Get subscription statistics
   async getSubscriptionStatistics() {
     try {
-      const totalSubscriptions = await Subscription.countDocuments({ "meta.deleted": false });
+      const totalSubscriptions = await Subscription.countDocuments({
+        "meta.deleted": false,
+        "meta.isActive": true,
+      });
+
       const activeSubscriptions = await Subscription.countDocuments({
         "meta.deleted": false,
+        "meta.isActive": true,
         dateLeft: { $exists: false },
       });
+
       const inactiveSubscriptions = await Subscription.countDocuments({
         "meta.deleted": false,
-        dateLeft: { $exists: true, $ne: null },
+        "meta.isActive": true,
+        dateLeft: { $exists: true },
       });
 
       const paymentTypeStats = await Subscription.aggregate([
-        { $match: { "meta.deleted": false } },
-        { $group: { _id: "$paymentType", count: { $sum: 1 } } },
+        {
+          $match: {
+            "meta.deleted": false,
+            "meta.isActive": true,
+          },
+        },
+        {
+          $group: {
+            _id: "$paymentType",
+            count: { $sum: 1 },
+          },
+        },
       ]);
 
       const membershipCategoryStats = await Subscription.aggregate([
-        { $match: { "meta.deleted": false } },
-        { $group: { _id: "$membershipCategory", count: { $sum: 1 } } },
+        {
+          $match: {
+            "meta.deleted": false,
+            "meta.isActive": true,
+          },
+        },
+        {
+          $group: {
+            _id: "$membershipCategory",
+            count: { $sum: 1 },
+          },
+        },
       ]);
 
       return {
-        total: totalSubscriptions,
-        active: activeSubscriptions,
-        inactive: inactiveSubscriptions,
-        paymentTypeBreakdown: paymentTypeStats,
-        membershipCategoryBreakdown: membershipCategoryStats,
+        totalSubscriptions,
+        activeSubscriptions,
+        inactiveSubscriptions,
+        paymentTypeStats,
+        membershipCategoryStats,
       };
     } catch (error) {
       throw new Error(`Error fetching subscription statistics: ${error.message}`);

@@ -26,10 +26,7 @@ class PersonalDetailsService {
   // Get personal details by ID
   async getPersonalDetailsById(id) {
     try {
-      const personalDetails = await PersonalDetails.findById(id).populate(
-        "userId",
-        "userEmail userFullName userMemberNumber"
-      );
+      const personalDetails = await PersonalDetails.findById(id);
 
       if (!personalDetails) {
         throw new Error("Personal details not found");
@@ -44,10 +41,7 @@ class PersonalDetailsService {
   // Get personal details by user ID
   async getPersonalDetailsByUserId(userId) {
     try {
-      const personalDetails = await PersonalDetails.findOne({ userId }).populate(
-        "userId",
-        "userEmail userFullName userMemberNumber"
-      );
+      const personalDetails = await PersonalDetails.findOne({ userId });
 
       if (!personalDetails) {
         throw new Error("Personal details not found for this user");
@@ -72,7 +66,6 @@ class PersonalDetailsService {
       if (filters.deceased !== undefined) query["personalInfo.deceased"] = filters.deceased;
 
       const personalDetails = await PersonalDetails.find(query)
-        .populate("userId", "userEmail userFullName userMemberNumber")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -113,7 +106,7 @@ class PersonalDetailsService {
       const personalDetails = await PersonalDetails.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
-      }).populate("userId", "userEmail userFullName userMemberNumber");
+      });
 
       if (!personalDetails) {
         throw new Error("Personal details not found");
@@ -204,7 +197,6 @@ class PersonalDetailsService {
       };
 
       const personalDetails = await PersonalDetails.find(query)
-        .populate("userId", "userEmail userFullName userMemberNumber")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });

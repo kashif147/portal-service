@@ -19,10 +19,7 @@ class ProfessionalDetailsService {
   // Get professional details by ID
   async getProfessionalDetailsById(id) {
     try {
-      const professionalDetails = await ProfessionalDetails.findById(id).populate(
-        "profileId",
-        "personalInfo contactInfo"
-      );
+      const professionalDetails = await ProfessionalDetails.findById(id);
 
       if (!professionalDetails) {
         throw new Error("Professional details not found");
@@ -37,13 +34,25 @@ class ProfessionalDetailsService {
   // Get professional details by profile ID
   async getProfessionalDetailsByProfileId(profileId) {
     try {
-      const professionalDetails = await ProfessionalDetails.findOne({ profileId }).populate(
-        "profileId",
-        "personalInfo contactInfo"
-      );
+      const professionalDetails = await ProfessionalDetails.findOne({ profileId });
 
       if (!professionalDetails) {
         throw new Error("Professional details not found for this profile");
+      }
+
+      return professionalDetails;
+    } catch (error) {
+      throw new Error(`Error fetching professional details: ${error.message}`);
+    }
+  }
+
+  // Get professional details by user ID
+  async getProfessionalDetailsByUserId(userId) {
+    try {
+      const professionalDetails = await ProfessionalDetails.findOne({ userId });
+
+      if (!professionalDetails) {
+        throw new Error("Professional details not found for this user");
       }
 
       return professionalDetails;
@@ -66,7 +75,6 @@ class ProfessionalDetailsService {
       if (filters.primarySection) query["professionalDetails.primarySection"] = filters.primarySection;
 
       const professionalDetails = await ProfessionalDetails.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -100,7 +108,7 @@ class ProfessionalDetailsService {
       const professionalDetails = await ProfessionalDetails.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
-      }).populate("profileId", "personalInfo contactInfo");
+      });
 
       if (!professionalDetails) {
         throw new Error("Professional details not found");
@@ -192,7 +200,6 @@ class ProfessionalDetailsService {
       };
 
       const professionalDetails = await ProfessionalDetails.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -224,7 +231,6 @@ class ProfessionalDetailsService {
       };
 
       const professionalDetails = await ProfessionalDetails.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
@@ -259,7 +265,6 @@ class ProfessionalDetailsService {
       };
 
       const professionalDetails = await ProfessionalDetails.find(query)
-        .populate("profileId", "personalInfo contactInfo")
         .skip(skip)
         .limit(limit)
         .sort({ "meta.createdAt": -1 });
