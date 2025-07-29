@@ -1,85 +1,64 @@
 const mongoose = require("mongoose");
-
-const AddressSchema = new mongoose.Schema(
-  {
-    eircode: String,
-    buildingOrHouse: { type: String, required: true },
-    streetOrRoad: String,
-    areaOrTown: String,
-    countyCityOrPostCode: { type: String, required: true },
-    country: String,
-    // country: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" },
-    fullAddress: String,
-  },
-  { _id: false }
-);
+const { v4: uuidv4 } = require("uuid");
 
 const ProfileSchema = new mongoose.Schema(
   {
+    ApplicationId: {
+      type: String,
+      default: uuidv4,
+      unique: true,
+    },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true }, // Azure B2C ID
-
     personalInfo: {
-      //   title: { type: mongoose.Schema.Types.ObjectId, ref: "lookups", required: true },
-      title: { type: String, required: true },
-      surname: { type: String, required: true },
-      forename: { type: String, required: true },
-      gender: { type: String, required: true },
-      //   gender: { type: mongoose.Schema.Types.ObjectId, ref: "lookups", required: true },
-      dateOfBirth: { type: String, required: true, match: /^\d{2}\/\d{2}\/\d{4}$/ },
-      age: Number, //calculated
-      countryPrimaryQualification: { type: String, required: true },
-      //   countryPrimaryQualification: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" },
+      title: { type: String },
+      surname: { type: String },
+      forename: { type: String },
+      gender: { type: String },
+      dateOfBirth: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
+      age: Number, //calculated via backend
+      countryPrimaryQualification: { type: String },
       deceased: { type: Boolean, default: false },
       deceasedDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
     },
-
     contactInfo: {
       preferredAddress: { type: String, enum: ["home", "work"], default: "home" },
-      homeAddress: { type: AddressSchema, required: true },
-      workAddress: AddressSchema,
-      preferredEmail: { type: String, enum: ["work", "personal"], default: "work" },
-      emailWork: {
-        type: String,
-        required: function () {
-          return !this.emailPersonal;
-        },
-      },
-      emailPersonal: String,
-      mobile: { type: String, required: true },
+      eircode: String,
+      buildingOrHouse: { type: String, required: true },
+      streetOrRoad: String,
+      areaOrTown: String,
+      countyCityOrPostCode: { type: String, required: true },
+      country: String,
+      fullAddress: String, //calculated via backend
+      mobileNumber: String,
+      telephoneNumber: String,
+      preferredEmail: { type: String, enum: ["personal", "work"], default: "personal" },
+      personalEmail: String,
+      workEmail: String,
       consentSMS: Boolean,
       consentEmail: Boolean,
     },
 
-    nursingDetails: {
-      nmbiNo: String,
-      nursingTypes: [String], // checkbox multiple
-      rejoiningOption: String,
-      isMemberOtherUnion: Boolean,
-      hasIncomeProtectionOtherUnion: Boolean,
+    // Application status for approval workflow
+    applicationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
     },
-
-    recruitment: {
-      recruitedBy: String,
-      recruitedByMembershipNo: String,
-    },
-
-    extras: {
-      incomeProtectionScheme: Boolean,
-      inmoRewards: Boolean,
-      valueAddedServices: Boolean,
-      termsAccepted: { type: Boolean, required: true },
+    approvalDetails: {
+      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      approvedAt: Date,
+      rejectionReason: String,
+      comments: String,
     },
 
     meta: {
-      createdAt: { type: String, default: () => new Date().toLocaleDateString("en-GB") },
-      updatedAt: { type: String },
-      //   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-      //   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },
   },
-  { timestamps: false }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("personalDetails", ProfileSchema);
