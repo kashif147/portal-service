@@ -6,7 +6,7 @@ exports.getAllApplications = async (req, res) => {
   try {
     // Get all personal details (applications)
     // const applications = await PersonalDetails.find({ "meta.deleted": false }).populate("userId", "name email").sort({ createdAt: -1 });
-    const applications = await PersonalDetails.find().populate.sort({ createdAt: -1 });
+    const applications = await PersonalDetails.find().sort({ createdAt: -1 });
 
     // For each application, get professional and subscription details
     const applicationsWithDetails = await Promise.all(
@@ -105,7 +105,8 @@ exports.approveApplication = async (req, res) => {
     const { applicationId } = req.params;
     const { comments, applicationStatus } = req.body;
 
-    const approvedBy = req.user.id;
+    // const approvedBy = req.user.id;
+    const approvedBy = "681117cb357e50dfa229b5f2";
 
     // Update personal details with approval
     const updatedApplication = await PersonalDetails.findOneAndUpdate(
@@ -128,12 +129,9 @@ exports.approveApplication = async (req, res) => {
     }
 
     return res.success({
-      message: "Application Status Changed successfully",
-      data: {
-        applicationId: updatedApplication.ApplicationId,
-        applicationStatus: updatedApplication.applicationStatus,
-        approvalDetails: updatedApplication.approvalDetails,
-      },
+      applicationId: updatedApplication.ApplicationId,
+      applicationStatus: updatedApplication.applicationStatus,
+      approvalDetails: updatedApplication.approvalDetails,
     });
   } catch (error) {
     console.error("ApplicationController [approveApplication] Error:", error);
