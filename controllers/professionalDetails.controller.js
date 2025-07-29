@@ -27,7 +27,7 @@ class ProfessionalDetailsController {
       });
     }
   }
-  //test
+
   async getProfessionalDetailsById(req, res) {
     try {
       const userId = req.user.id;
