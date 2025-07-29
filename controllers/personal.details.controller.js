@@ -22,7 +22,7 @@ exports.createPersonalDetails = async (req, res) => {
     return res.serverError(error);
   }
 };
-
+//test
 exports.getPersonalDetails = async (req, res) => {
   try {
     const result = await personalDetailsHandler.getByUserId(req.user.id);
