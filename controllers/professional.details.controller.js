@@ -1,6 +1,5 @@
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
 
-const userId = "681117cb357e50dfa229b5f2";
 exports.createProfessionalDetails = async (req, res) => {
   try {
     const userId = req.user.id;
