@@ -105,6 +105,7 @@ exports.approveApplication = async (req, res) => {
     const { applicationId } = req.params;
     const { comments, applicationStatus } = req.body;
 
+    // WILL FETCH THE ID FROM TOKEN ONCE TESTING IS DONE
     // const approvedBy = req.user.id;
     const approvedBy = "681117cb357e50dfa229b5f2";
 

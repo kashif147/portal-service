@@ -5,6 +5,5 @@ router.use("/personal-details", require("./personal.details.routes"));
 router.use("/professional-details", require("./professional.details.routes"));
 router.use("/subscription-details", require("./subscription.details.routes"));
 router.use("/applications", require("./application.routes"));
-// router.use("/user-information", require("./userInformationFlow.routes"));
 
 module.exports = router;
