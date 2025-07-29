@@ -76,3 +76,38 @@ exports.deleteByUserId = (userId) =>
       reject(error);
     }
   });
+
+exports.findDeletedByUserId = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const result = await PersonalDetails.findOne({
+        userId,
+        "meta.deleted": true,
+      });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [findDeletedByUserId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.restoreByUserId = (userId, updateData) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await PersonalDetails.findOneAndUpdate(
+        { userId, "meta.deleted": true },
+        {
+          ...updateData,
+          "meta.deleted": false,
+          "meta.isActive": true,
+          "meta.updatedAt": new Date().toLocaleDateString("en-GB"),
+        },
+        { new: true, runValidators: true }
+      );
+      if (!record) return reject(new Error("Deleted personal details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [restoreByUserId] Error:", error);
+      reject(error);
+    }
+  });

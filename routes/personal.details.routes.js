@@ -9,7 +9,7 @@ router.post("/", verifyJWT, personalDetailsController.createPersonalDetails);
 router.get("/me", verifyJWT, personalDetailsController.getPersonalDetailsByUserId);
 router.put("/", verifyJWT, personalDetailsController.updatePersonalDetails);
 router.delete("/", verifyJWT, personalDetailsController.deletePersonalDetails);
-// router.patch("/restore", verifyJWT, personalDetailsController.restorePersonalDetails);
+router.patch("/restore", verifyJWT, personalDetailsController.restorePersonalDetails);
 
 // Admin routes (require authentication + admin role)
 // router.get("/all", verifyJWT, verifyRoles(["admin"]), personalDetailsController.getAllPersonalDetails);

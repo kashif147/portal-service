@@ -7,7 +7,7 @@ exports.createPersonalDetails = async (req, res) => {
 
     const existingPersonalDetails = await personalDetailsHandler.getByUserId(userId);
     if (existingPersonalDetails) {
-      return res.fail("Personal details already exist, please update existing details");
+      return res.success("Personal details already exist, please update existing details");
     }
 
     const result = await personalDetailsHandler.create({
@@ -26,10 +26,10 @@ exports.createPersonalDetails = async (req, res) => {
 exports.getPersonalDetailsByUserId = async (req, res) => {
   try {
     const result = await personalDetailsHandler.getByUserId(req.user.id);
-    return res.success({
-      message: "Personal details retrieved",
-      data: result,
-    });
+    if (result.meta.deleted) {
+      return res.success("personal details deleted, please restore to continue");
+    }
+    return res.success(result);
   } catch (error) {
     console.error("PersonalDetailsController [getPersonalDetailsByUserId] Error:", error);
     return res.serverError(error);
@@ -73,14 +73,22 @@ exports.deletePersonalDetails = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const result = await personalDetailsHandler.deleteByUserId(userId);
+    await personalDetailsHandler.deleteByUserId(userId);
 
-    return res.success({
-      message: "Personal details deleted successfully",
-      data: result,
-    });
+    return res.success("personal details deleted successfully");
   } catch (error) {
     console.error("PersonalDetailsController [deletePersonalDetails] Error:", error);
+    return res.serverError(error);
+  }
+};
+
+exports.restorePersonalDetails = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await personalDetailsHandler.restoreByUserId(userId);
+    return res.success("personal details restored successfully");
+  } catch (error) {
+    console.error("PersonalDetailsController [restorePersonalDetails] Error:", error);
     return res.serverError(error);
   }
 };
