@@ -22,7 +22,20 @@ exports.createPersonalDetails = async (req, res) => {
     return res.serverError(error);
   }
 };
-//test
+
+exports.getPersonalDetailsByUserId = async (req, res) => {
+  try {
+    const result = await personalDetailsHandler.getByUserId(req.user.id);
+    return res.success({
+      message: "Personal details retrieved",
+      data: result,
+    });
+  } catch (error) {
+    console.error("PersonalDetailsController [getPersonalDetailsByUserId] Error:", error);
+    return res.serverError(error);
+  }
+};
+
 exports.getPersonalDetails = async (req, res) => {
   try {
     const result = await personalDetailsHandler.getByUserId(req.user.id);

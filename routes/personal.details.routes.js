@@ -6,7 +6,7 @@ const verifyJWT = require("../middlewares/verifyJWT");
 
 // User routes (require authentication)
 router.post("/", verifyJWT, personalDetailsController.createPersonalDetails);
-// router.get("/me", verifyJWT, personalDetailsController.getPersonalDetailsByUserId);
+router.get("/me", verifyJWT, personalDetailsController.getPersonalDetailsByUserId);
 router.put("/", verifyJWT, personalDetailsController.updatePersonalDetails);
 router.delete("/", verifyJWT, personalDetailsController.deletePersonalDetails);
 // router.patch("/restore", verifyJWT, personalDetailsController.restorePersonalDetails);
