@@ -2,16 +2,16 @@ const mongoose = require("mongoose");
 
 const ProfessionalSchema = new mongoose.Schema(
   {
-    // profileId: { type: mongoose.Schema.Types.ObjectId, ref: "Profile", required: true },
-    profileId: { type: mongoose.Schema.Types.ObjectId, ref: "Profile", required: true },
+    ApplicationId: { type: String, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true }, // Azure B2C ID
     professionalDetails: {
+      membershipCategory: { type: String },
       workLocation: { type: String },
       otherWorkLocation: { type: String },
       grade: { type: String },
       otherGrade: { type: String },
-      primarySection: String,
-      secondarySection: String,
-      otherSection: String,
+      nmbiNumber: { type: String },
+      nurseType: { type: String },
       nursingAdaptationProgramme: { type: Boolean, default: false },
       region: { type: String },
       branch: { type: String },
@@ -24,15 +24,13 @@ const ProfessionalSchema = new mongoose.Schema(
     },
 
     meta: {
-      createdAt: { type: String, default: () => new Date().toLocaleDateString("en-GB") },
-      updatedAt: { type: String },
-      //   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-      //   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },
   },
-  { timestamps: false }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("ProfessionalDetails", ProfessionalSchema);
