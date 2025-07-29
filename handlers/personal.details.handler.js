@@ -30,7 +30,7 @@ exports.create = (data) =>
       reject(error);
     }
   });
-//test
+
 exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
