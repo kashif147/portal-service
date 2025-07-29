@@ -30,7 +30,6 @@ class ProfessionalDetailsController {
   //test
   async getProfessionalDetailsById(req, res) {
     try {
-      // Extract user ID from JWT token
       const userId = req.user.id;
 
       // First get personal details to get the profileId
