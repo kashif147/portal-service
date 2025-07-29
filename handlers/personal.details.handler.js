@@ -35,7 +35,6 @@ exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
       const result = await PersonalDetails.findOne({ userId });
-      if (!result) return reject(new Error("Personal details not found"));
       resolve(result);
     } catch (error) {
       console.error("PersonalDetailsHandler [getByUserId] Error:", error);
