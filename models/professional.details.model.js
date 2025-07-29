@@ -4,28 +4,23 @@ const ProfessionalSchema = new mongoose.Schema(
   {
     // profileId: { type: mongoose.Schema.Types.ObjectId, ref: "Profile", required: true },
     profileId: { type: mongoose.Schema.Types.ObjectId, ref: "Profile", required: true },
-
     professionalDetails: {
-      //   workLocation: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" }, //where lookuptype='Station'
-      //   otherWorkLocation: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" }, //where lookuptype='Station',
-      //   grade: { type: mongoose.Schema.Types.ObjectId, ref: "lookups", required: true }, //where lookuptype='Ranks'
-      //   otherGrade: { type: mongoose.Schema.Types.ObjectId, ref: "lookups", required: true }, //where lookuptype='Ranks',
-      otherWorkLocation: { type: String, required: true },
-      workLocationPhone: String,
-      grade: { type: String, required: true },
-      workLocation: { type: String, required: true },
-      otherGrade: { type: String, required: true },
+      workLocation: { type: String },
+      otherWorkLocation: { type: String },
+      grade: { type: String },
+      otherGrade: { type: String },
       primarySection: String,
       secondarySection: String,
       otherSection: String,
-      //   branchId: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" }, //where lookuptype='Districts'
-      // regionId: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" }, //where lookuptype='Divisions',
-      regionId: { type: String },
-      branchId: { type: String },
-      pensionNo: String,
-      //   studyLocation: { type: mongoose.Schema.Types.ObjectId, ref: "lookups" },
+      nursingAdaptationProgramme: { type: Boolean, default: false },
+      region: { type: String },
+      branch: { type: String },
+      pensionNo: { type: String },
+      isRetired: { type: Boolean, default: false },
+      retiredDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
       studyLocation: { type: String },
       graduationDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
+      otherGraduationDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
     },
 
     meta: {

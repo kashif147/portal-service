@@ -26,9 +26,6 @@ exports.createPersonalDetails = async (req, res) => {
 exports.getPersonalDetailsByUserId = async (req, res) => {
   try {
     const result = await personalDetailsHandler.getByUserId(req.user.id);
-    if (result.meta.deleted) {
-      return res.success("personal details deleted, please restore to continue");
-    }
     return res.success(result);
   } catch (error) {
     console.error("PersonalDetailsController [getPersonalDetailsByUserId] Error:", error);
@@ -85,10 +82,22 @@ exports.deletePersonalDetails = async (req, res) => {
 exports.restorePersonalDetails = async (req, res) => {
   try {
     const userId = req.user.id;
-    await personalDetailsHandler.restoreByUserId(userId);
-    return res.success("personal details restored successfully");
+    const validatedData = req.body;
+
+    const result = await personalDetailsHandler.restoreByUserId(userId, {
+      ...validatedData,
+      meta: { updatedBy: userId },
+    });
+
+    return res.success({
+      message: "Personal details restored successfully",
+      data: result,
+    });
   } catch (error) {
     console.error("PersonalDetailsController [restorePersonalDetails] Error:", error);
+    if (error.message === "Deleted personal details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
