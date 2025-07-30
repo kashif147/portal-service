@@ -1,6 +1,7 @@
 const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
+// const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
 
 exports.getAllApplications = async (req, res) => {
   try {
@@ -128,6 +129,26 @@ exports.approveApplication = async (req, res) => {
     if (!updatedApplication) {
       return res.fail("Application not found");
     }
+
+    // // Get subscription details for the user
+    // const subscriptionDetails = await SubscriptionDetails.findOne({
+    //   userId: updatedApplication.userId,
+    //   "meta.deleted": false,
+    // });
+
+    // // Prepare event data
+    // const eventData = {
+    //   personalDetails: updatedApplication,
+    //   subscriptionDetails: subscriptionDetails,
+    //   approvalDetails: updatedApplication.approvalDetails,
+    // };
+
+    // // Emit appropriate event based on status
+    // if (applicationStatus === "approved") {
+    //   await emitApplicationApproved(eventData);
+    // } else if (applicationStatus === "rejected") {
+    //   await emitApplicationRejected(eventData);
+    // }
 
     return res.success({
       applicationId: updatedApplication.ApplicationId,
