@@ -20,7 +20,6 @@ const ProfessionalSchema = new mongoose.Schema(
       retiredDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
       studyLocation: { type: String },
       graduationDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
-      otherGraduationDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
     },
 
     meta: {

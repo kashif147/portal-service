@@ -74,10 +74,7 @@ class ProfessionalDetailsService {
       if (filters.branchId) query["professionalDetails.branchId"] = filters.branchId;
       if (filters.primarySection) query["professionalDetails.primarySection"] = filters.primarySection;
 
-      const professionalDetails = await ProfessionalDetails.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ "meta.createdAt": -1 });
+      const professionalDetails = await ProfessionalDetails.find(query).skip(skip).limit(limit).sort({ "meta.createdAt": -1 });
 
       const total = await ProfessionalDetails.countDocuments(query);
 
@@ -199,10 +196,7 @@ class ProfessionalDetailsService {
         ],
       };
 
-      const professionalDetails = await ProfessionalDetails.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ "meta.createdAt": -1 });
+      const professionalDetails = await ProfessionalDetails.find(query).skip(skip).limit(limit).sort({ "meta.createdAt": -1 });
 
       const total = await ProfessionalDetails.countDocuments(query);
 
@@ -230,10 +224,7 @@ class ProfessionalDetailsService {
         "professionalDetails.grade": grade,
       };
 
-      const professionalDetails = await ProfessionalDetails.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ "meta.createdAt": -1 });
+      const professionalDetails = await ProfessionalDetails.find(query).skip(skip).limit(limit).sort({ "meta.createdAt": -1 });
 
       const total = await ProfessionalDetails.countDocuments(query);
 
@@ -258,16 +249,10 @@ class ProfessionalDetailsService {
       const query = {
         "meta.deleted": false,
         "meta.isActive": true,
-        $or: [
-          { "professionalDetails.workLocation": workLocation },
-          { "professionalDetails.otherWorkLocation": workLocation },
-        ],
+        $or: [{ "professionalDetails.workLocation": workLocation }, { "professionalDetails.otherWorkLocation": workLocation }],
       };
 
-      const professionalDetails = await ProfessionalDetails.find(query)
-        .skip(skip)
-        .limit(limit)
-        .sort({ "meta.createdAt": -1 });
+      const professionalDetails = await ProfessionalDetails.find(query).skip(skip).limit(limit).sort({ "meta.createdAt": -1 });
 
       const total = await ProfessionalDetails.countDocuments(query);
 

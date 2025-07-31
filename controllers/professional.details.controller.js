@@ -1,4 +1,30 @@
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
+const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
+
+// Function to update subscription details with professional details
+// const updateSubscriptionWithProfessionalDetails = async (userId, professionalDetails) => {
+//   try {
+//     // Check if subscription details exist for this user
+//     const existingSubscription = await subscriptionDetailsHandler.getByUserId(userId);
+//     if (existingSubscription) {
+//       // Extract common fields from professional details
+//       const commonFields = {
+//         membershipCategory: professionalDetails.membershipCategory,
+//         workLocation: professionalDetails.workLocation,
+//         otherWorkLocation: professionalDetails.otherWorkLocation,
+//         region: professionalDetails.region,
+//         branch: professionalDetails.branch,
+//       };
+
+//       // Update subscription details with professional details
+//       await subscriptionDetailsHandler.updateByUserId(userId, {
+//         professionalDetails: commonFields,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error updating subscription with professional details:", error);
+//   }
+// };
 
 exports.createProfessionalDetails = async (req, res) => {
   try {
@@ -54,19 +80,13 @@ exports.getProfessionalDetails = async (req, res) => {
   try {
     const userId = req.user.id;
     const result = await professionalDetailsHandler.getByUserId(userId);
-    if (!result) {
-      return res.fail("Professional details not found");
-    }
-    const checkifSoftDeleted = await professionalDetailsHandler.checkifSoftDeleted(userId);
-    if (checkifSoftDeleted) {
-      return res.success("Professional details deleted, please restore to continue");
-    }
-    return res.success(result);
+
+    return res.success({
+      message: "Professional details retrieved",
+      data: result,
+    });
   } catch (error) {
     console.error("ProfessionalDetailsController [getProfessionalDetails] Error:", error);
-    if (error.message === "Professional details not found") {
-      return res.fail(error.message);
-    }
     return res.serverError(error);
   }
 };
@@ -80,6 +100,11 @@ exports.updateProfessionalDetails = async (req, res) => {
     };
 
     const result = await professionalDetailsHandler.updateByUserId(userId, updatePayload);
+
+    // // Update subscription details with professional details if subscription exists
+    // if (result && result.professionalDetails) {
+    //   await updateSubscriptionWithProfessionalDetails(userId, result.professionalDetails);
+    // }
 
     return res.success({
       message: "Updated successfully",

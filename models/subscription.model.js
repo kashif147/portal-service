@@ -32,6 +32,15 @@ const SubscriptionSchema = new mongoose.Schema(
       reasonLeft: String,
     },
 
+    // // Professional details that will be synced from professional details
+    // professionalDetails: {
+    //   membershipCategory: { type: String },
+    //   workLocation: { type: String },
+    //   otherWorkLocation: { type: String },
+    //   region: { type: String },
+    //   branch: { type: String },
+    // },
+
     meta: {
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },

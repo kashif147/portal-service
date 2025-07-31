@@ -1,6 +1,26 @@
 const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
 
+// Function to extract professional details for subscription
+// const extractProfessionalDetailsForSubscription = async (userId) => {
+//   try {
+//     const professionalDetails = await professionalDetailsHandler.getByUserId(userId);
+//     if (professionalDetails && professionalDetails.professionalDetails) {
+//       return {
+//         membershipCategory: professionalDetails.professionalDetails.membershipCategory,
+//         workLocation: professionalDetails.professionalDetails.workLocation,
+//         otherWorkLocation: professionalDetails.professionalDetails.otherWorkLocation,
+//         region: professionalDetails.professionalDetails.region,
+//         branch: professionalDetails.professionalDetails.branch,
+//       };
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error("Error extracting professional details:", error);
+//     return null;
+//   }
+// };
+
 exports.createSubscriptionDetails = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -18,10 +38,14 @@ exports.createSubscriptionDetails = async (req, res) => {
       }
     }
 
-    // Create new subscription details
+    // // Extract professional details for subscription
+    // const professionalDetailsForSubscription = await extractProfessionalDetailsForSubscription(userId);
+
+    // // Create new subscription details
     const result = await subscriptionDetailsHandler.create({
       ...validatedData,
       userId,
+      // professionalDetails: professionalDetailsForSubscription,
       meta: { createdBy: userId },
     });
 
