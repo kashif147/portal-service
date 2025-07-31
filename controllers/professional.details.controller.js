@@ -81,10 +81,7 @@ exports.getProfessionalDetails = async (req, res) => {
     const userId = req.user.id;
     const result = await professionalDetailsHandler.getByUserId(userId);
 
-    return res.success({
-      message: "Professional details retrieved",
-      data: result,
-    });
+    return res.success(result);
   } catch (error) {
     console.error("ProfessionalDetailsController [getProfessionalDetails] Error:", error);
     return res.serverError(error);
@@ -106,10 +103,7 @@ exports.updateProfessionalDetails = async (req, res) => {
     //   await updateSubscriptionWithProfessionalDetails(userId, result.professionalDetails);
     // }
 
-    return res.success({
-      message: "Updated successfully",
-      data: result,
-    });
+    return res.success(result);
   } catch (error) {
     console.error("ProfessionalDetailsController [updateProfessionalDetails] Error:", error);
     if (error.message === "Professional details not found") {

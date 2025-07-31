@@ -36,10 +36,7 @@ exports.getPersonalDetailsByUserId = async (req, res) => {
 exports.getPersonalDetails = async (req, res) => {
   try {
     const result = await personalDetailsHandler.getByUserId(req.user.id);
-    return res.success({
-      message: "Personal details retrieved",
-      data: result,
-    });
+    return res.success(result);
   } catch (error) {
     console.error("PersonalDetailsController [getPersonalDetails] Error:", error);
     return res.serverError(error);
@@ -56,10 +53,7 @@ exports.updatePersonalDetails = async (req, res) => {
 
     const result = await personalDetailsHandler.updateByUserId(userId, updatePayload);
 
-    return res.success({
-      message: "Updated successfully",
-      data: result,
-    });
+    return res.success(result);
   } catch (error) {
     console.error("PersonalDetailsController [updatePersonalDetails] Error:", error);
     return res.serverError(error);
