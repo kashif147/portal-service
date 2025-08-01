@@ -8,7 +8,7 @@ const ProfileSchema = new mongoose.Schema(
       default: uuidv4,
       unique: true,
     },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true }, // Azure B2C ID
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
     personalInfo: {
       title: { type: String },
       surname: { type: String },
@@ -23,10 +23,10 @@ const ProfileSchema = new mongoose.Schema(
     contactInfo: {
       preferredAddress: { type: String, enum: ["home", "work"], default: "home" },
       eircode: String,
-      buildingOrHouse: { type: String, required: true },
+      buildingOrHouse: { type: String },
       streetOrRoad: String,
       areaOrTown: String,
-      countyCityOrPostCode: { type: String, required: true },
+      countyCityOrPostCode: { type: String },
       country: String,
       fullAddress: String, //calculated via backend
       mobileNumber: String,
@@ -54,6 +54,7 @@ const ProfileSchema = new mongoose.Schema(
     meta: {
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      userType: { type: String, enum: ["PORTAL", "CRM"], default: "PORTAL" },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },

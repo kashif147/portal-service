@@ -42,6 +42,19 @@ exports.getByUserId = (userId) =>
     }
   });
 
+exports.getByEmail = (email) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const result = await PersonalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [getByEmail] Error:", error);
+      reject(error);
+    }
+  });
+
 exports.updateByUserId = (userId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -57,22 +70,47 @@ exports.updateByUserId = (userId, updateData) =>
     }
   });
 
-exports.deleteByUserId = (userId) =>
+exports.updateByEmail = (email, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
       const record = await PersonalDetails.findOneAndUpdate(
-        { userId },
+        { $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }] },
+        updateData,
+        { new: true, runValidators: true }
+      );
+      if (!record) return reject(new Error("Personal details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [updateByEmail] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.deleteByUserId = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await PersonalDetails.findOneAndDelete({ userId });
+      if (!record) return reject(new Error("Personal details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [deleteByUserId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.deleteByEmail = (email) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await PersonalDetails.findOneAndDelete(
         {
-          "meta.deleted": true,
-          "meta.isActive": false,
-          "meta.updatedAt": new Date().toLocaleDateString("en-GB"),
+          $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
         },
         { new: true }
       );
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [deleteByUserId] Error:", error);
+      console.error("PersonalDetailsHandler [deleteByEmail] Error:", error);
       reject(error);
     }
   });
@@ -91,23 +129,17 @@ exports.findDeletedByUserId = (userId) =>
     }
   });
 
-exports.restoreByUserId = (userId, updateData) =>
+exports.findDeletedByEmail = (email) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndUpdate(
-        { userId, "meta.deleted": true },
-        {
-          ...updateData,
-          "meta.deleted": false,
-          "meta.isActive": true,
-          "meta.updatedAt": new Date().toLocaleDateString("en-GB"),
-        },
-        { new: true, runValidators: true }
-      );
-      if (!record) return reject(new Error("Deleted personal details not found"));
-      resolve(record);
+      // Check both personalEmail and workEmail fields
+      const result = await PersonalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+        "meta.deleted": true,
+      });
+      resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [restoreByUserId] Error:", error);
+      console.error("PersonalDetailsHandler [findDeletedByEmail] Error:", error);
       reject(error);
     }
   });
