@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const ProfessionalSchema = new mongoose.Schema(
   {
     ApplicationId: { type: String, required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true }, // Azure B2C ID
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
     professionalDetails: {
       membershipCategory: { type: String },
       workLocation: { type: String },

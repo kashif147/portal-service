@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const SubscriptionSchema = new mongoose.Schema(
   {
     ApplicationId: { type: String, required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true }, // Azure B2C ID
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
 
     subscriptionDetails: {
       paymentType: {
@@ -26,8 +26,8 @@ const SubscriptionSchema = new mongoose.Schema(
       paymentFrequency: { type: String, enum: ["Monthly", "Quarterly", "Annually"], default: "Monthly" },
       valueAddedServices: { type: Boolean, default: false },
       termsAndConditions: { type: Boolean, default: true },
-      membershipCategory: { type: String, required: true },
-      dateJoined: { type: String, required: true, match: /^\d{2}\/\d{2}\/\d{4}$/ },
+      membershipCategory: { type: String },
+      dateJoined: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
       dateLeft: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
       reasonLeft: String,
     },
