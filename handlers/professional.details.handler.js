@@ -1,5 +1,6 @@
 const ProfessionalDetails = require("../models/professional.details.model");
 const personalDetails = require("../models/personal.details.model");
+
 exports.create = (data) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -22,6 +23,57 @@ exports.checkApplicationId = (ApplicationId) =>
     }
   });
 
+exports.getByApplicationId = (ApplicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await ProfessionalDetails.findOne({ ApplicationId });
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [getByApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.updateByApplicationId = (ApplicationId, updateData) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await ProfessionalDetails.findOneAndUpdate({ ApplicationId }, updateData, {
+        new: true,
+        runValidators: true,
+      });
+      if (!record) return reject(new Error("Professional details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [updateByApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.deleteByApplicationId = (ApplicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await ProfessionalDetails.findOneAndDelete({ ApplicationId });
+      if (!record) return reject(new Error("Professional details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [deleteByApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.checkPersonalDetailsByEmail = (email) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await personalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [checkPersonalDetailsByEmail] Error:", error);
+      reject(error);
+    }
+  });
+
 exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -29,6 +81,28 @@ exports.getByUserId = (userId) =>
       resolve(result);
     } catch (error) {
       console.error("ProfessionalDetailsHandler [getByUserId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.getByEmail = (email) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      // First find personal details by email to get userId
+      const personalDetailsRecord = await personalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+
+      if (!personalDetailsRecord) {
+        resolve(null);
+        return;
+      }
+
+      // Then find professional details by userId
+      const result = await ProfessionalDetails.findOne({ userId: personalDetailsRecord._id });
+      resolve(result);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [getByEmail] Error:", error);
       reject(error);
     }
   });
@@ -48,18 +122,35 @@ exports.updateByUserId = (userId, updateData) =>
     }
   });
 
+exports.updateByEmail = (email, updateData) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      // First find personal details by email to get userId
+      const personalDetailsRecord = await personalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+
+      if (!personalDetailsRecord) {
+        return reject(new Error("Personal details not found for this email"));
+      }
+
+      // Then update professional details by userId
+      const record = await ProfessionalDetails.findOneAndUpdate({ userId: personalDetailsRecord._id }, updateData, {
+        new: true,
+        runValidators: true,
+      });
+      if (!record) return reject(new Error("Professional details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [updateByEmail] Error:", error);
+      reject(error);
+    }
+  });
+
 exports.deleteByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await ProfessionalDetails.findOneAndUpdate(
-        { userId },
-        {
-          "meta.deleted": true,
-          "meta.isActive": false,
-          "meta.updatedAt": new Date().toLocaleDateString("en-GB"),
-        },
-        { new: true }
-      );
+      const record = await ProfessionalDetails.findOneAndDelete({ userId });
       if (!record) return reject(new Error("Professional details not found"));
       resolve(record);
     } catch (error) {
@@ -68,51 +159,49 @@ exports.deleteByUserId = (userId) =>
     }
   });
 
-exports.findDeletedByUserId = (userId) =>
+exports.deleteByEmail = (email) =>
   new Promise(async (resolve, reject) => {
     try {
+      // First find personal details by email to get userId
+      const personalDetailsRecord = await personalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+
+      if (!personalDetailsRecord) {
+        return reject(new Error("Personal details not found for this email"));
+      }
+
+      // Then delete professional details by userId
+      const record = await ProfessionalDetails.findOneAndDelete({ userId: personalDetailsRecord._id }, { new: true });
+      if (!record) return reject(new Error("Professional details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("ProfessionalDetailsHandler [deleteByEmail] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.findDeletedByEmail = (email) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      // First find personal details by email to get userId
+      const personalDetailsRecord = await personalDetails.findOne({
+        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+      });
+
+      if (!personalDetailsRecord) {
+        resolve(null);
+        return;
+      }
+
+      // Then find deleted professional details by userId
       const result = await ProfessionalDetails.findOne({
-        userId,
+        userId: personalDetailsRecord._id,
         "meta.deleted": true,
       });
       resolve(result);
     } catch (error) {
-      console.error("ProfessionalDetailsHandler [findDeletedByUserId] Error:", error);
-      reject(error);
-    }
-  });
-
-exports.restoreByUserId = (userId, updateData) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      // Remove meta from updateData to avoid conflicts
-      const { meta, ...dataWithoutMeta } = updateData;
-
-      const record = await ProfessionalDetails.findOneAndUpdate(
-        { userId, "meta.deleted": true },
-        {
-          ...dataWithoutMeta,
-          "meta.deleted": false,
-          "meta.isActive": true,
-          "meta.updatedAt": new Date().toLocaleDateString("en-GB"),
-        },
-        { new: true, runValidators: true }
-      );
-      if (!record) return reject(new Error("Deleted professional details not found"));
-      resolve(record);
-    } catch (error) {
-      console.error("ProfessionalDetailsHandler [restoreByUserId] Error:", error);
-      reject(error);
-    }
-  });
-
-exports.checkifSoftDeleted = (userId) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      const result = await ProfessionalDetails.findOne({ userId, "meta.deleted": true });
-      resolve(result);
-    } catch (error) {
-      console.error("ProfessionalDetailsHandler [checkifSoftDeleted] Error:", error);
+      console.error("ProfessionalDetailsHandler [findDeletedByEmail] Error:", error);
       reject(error);
     }
   });

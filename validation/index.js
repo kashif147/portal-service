@@ -1,6 +1,6 @@
 const Joi = require("joi");
 
-module.exports.create = Joi.object({
+module.exports.personal_details_create = Joi.object({
   personalInfo: Joi.object({
     title: Joi.string().optional(),
     surname: Joi.string().optional(),
@@ -25,4 +25,94 @@ module.exports.create = Joi.object({
     consentSMS: Joi.boolean().optional(),
     consentEmail: Joi.boolean().optional(),
   }).optional(),
+});
+
+module.exports.professional_details_create = Joi.object({
+  ApplicationId: Joi.string().required(),
+  professionalDetails: Joi.object({
+    membershipCategory: Joi.string().optional(),
+    workLocation: Joi.string().optional(),
+    otherWorkLocation: Joi.string().optional(),
+    grade: Joi.string().optional(),
+    otherGrade: Joi.string().optional(),
+    nmbiNumber: Joi.string().optional(),
+    nurseType: Joi.string().optional(),
+    nursingAdaptationProgramme: Joi.boolean().optional(),
+    region: Joi.string().optional(),
+    branch: Joi.string().optional(),
+    pensionNo: Joi.string().optional(),
+    isRetired: Joi.boolean().optional(),
+    retiredDate: Joi.string().optional(),
+    studyLocation: Joi.string().optional(),
+    graduationDate: Joi.string().optional(),
+    otherGraduationDate: Joi.string().optional(),
+  }),
+});
+
+module.exports.professional_details_update = Joi.object({
+  professionalDetails: Joi.object({
+    membershipCategory: Joi.string().optional(),
+    workLocation: Joi.string().optional(),
+    otherWorkLocation: Joi.string().optional(),
+    grade: Joi.string().optional(),
+    otherGrade: Joi.string().optional(),
+    nmbiNumber: Joi.string().optional(),
+    nurseType: Joi.string().optional(),
+    nursingAdaptationProgramme: Joi.boolean().optional(),
+    region: Joi.string().optional(),
+    branch: Joi.string().optional(),
+    pensionNo: Joi.string().optional(),
+    isRetired: Joi.boolean().optional(),
+    retiredDate: Joi.string().optional(),
+    studyLocation: Joi.string().optional(),
+    graduationDate: Joi.string().optional(),
+    otherGraduationDate: Joi.string().optional(),
+  }),
+});
+
+module.exports.subscription_details_create = Joi.object({
+  ApplicationId: Joi.string().required(),
+  subscriptionDetails: Joi.object({
+    paymentType: Joi.string().optional(),
+    payrollNo: Joi.string().optional(),
+    membershipStatus: Joi.string().optional(),
+    otherIrishTradeUnion: Joi.boolean().optional(),
+    otherScheme: Joi.boolean().optional(),
+    recuritedBy: Joi.string().optional(),
+    recuritedByMembershipNo: Joi.string().optional(),
+    primarySection: Joi.string().optional(),
+    otherPrimarySection: Joi.string().optional(),
+    secondarySection: Joi.string().optional(),
+    otherSecondarySection: Joi.string().optional(),
+    incomeProtectionScheme: Joi.boolean().optional(),
+    inmoRewards: Joi.boolean().optional(),
+    valueAddedServices: Joi.boolean().optional(),
+    termsAndConditions: Joi.boolean().optional(),
+    membershipCategory: Joi.string().optional(),
+    dateJoined: Joi.string().optional(),
+    paymentFrequency: Joi.string().optional(),
+  }),
+});
+
+module.exports.subscription_details_update = Joi.object({
+  subscriptionDetails: Joi.object({
+    paymentType: Joi.string().optional(),
+    payrollNo: Joi.string().optional(),
+    membershipStatus: Joi.string().optional(),
+    otherIrishTradeUnion: Joi.boolean().optional(),
+    otherScheme: Joi.boolean().optional(),
+    recuritedBy: Joi.string().optional(),
+    recuritedByMembershipNo: Joi.string().optional(),
+    primarySection: Joi.string().optional(),
+    otherPrimarySection: Joi.string().optional(),
+    secondarySection: Joi.string().optional(),
+    otherSecondarySection: Joi.string().optional(),
+    incomeProtectionScheme: Joi.boolean().optional(),
+    inmoRewards: Joi.boolean().optional(),
+    valueAddedServices: Joi.boolean().optional(),
+    termsAndConditions: Joi.boolean().optional(),
+    membershipCategory: Joi.string().optional(),
+    dateJoined: Joi.string().optional(),
+    paymentFrequency: Joi.string().optional(),
+  }),
 });

@@ -44,6 +44,7 @@ const SubscriptionSchema = new mongoose.Schema(
     meta: {
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
+      userType: { type: String },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },

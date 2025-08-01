@@ -6,7 +6,7 @@ exports.createPersonalDetails = async (req, res) => {
   try {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
 
-    const validatedData = await joischemas.create.validateAsync(req.body);
+    const validatedData = await joischemas.personal_details_create.validateAsync(req.body);
 
     if (userType === "CRM") {
       const email = req.body.contactInfo?.personalEmail || req.body.contactInfo?.workEmail;
@@ -64,7 +64,7 @@ exports.updatePersonalDetails = async (req, res) => {
   try {
     const { userType, creatorId } = extractUserAndCreatorContext(req);
 
-    const validatedData = await joischemas.create.validateAsync(req.body);
+    const validatedData = await joischemas.personal_details_update.validateAsync(req.body);
 
     const updatePayload = {
       ...validatedData,

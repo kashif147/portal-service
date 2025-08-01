@@ -1,10 +1,17 @@
 const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
+const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 // const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
 
 exports.getAllApplications = async (req, res) => {
   try {
+    // Check if user is CRM
+    const { userType } = extractUserAndCreatorContext(req);
+    if (userType !== "CRM") {
+      return res.fail("Access denied. Only CRM user can view applications.");
+    }
+
     // Get all personal details (applications)
     // const applications = await PersonalDetails.find({ "meta.deleted": false }).populate("userId", "name email").sort({ createdAt: -1 });
     const applications = await PersonalDetails.find().sort({ createdAt: -1 });
@@ -55,6 +62,12 @@ exports.getAllApplications = async (req, res) => {
 
 exports.getApplicationById = async (req, res) => {
   try {
+    // Check if user is CRM
+    const { userType } = extractUserAndCreatorContext(req);
+    if (userType !== "CRM") {
+      return res.fail("Access denied. Only CRM users can view applications.");
+    }
+
     const { applicationId } = req.params;
 
     // Get personal details by application ID
@@ -103,12 +116,17 @@ exports.getApplicationById = async (req, res) => {
 
 exports.approveApplication = async (req, res) => {
   try {
+    // Check if user is CRM
+    const { userType, creatorId } = extractUserAndCreatorContext(req);
+    if (userType !== "CRM") {
+      return res.fail("Access denied. Only CRM users can approve applications.");
+    }
+
     const { applicationId } = req.params;
     const { comments, applicationStatus } = req.body;
 
-    // WILL FETCH THE ID FROM TOKEN ONCE TESTING IS DONE
-    // const approvedBy = req.user.id;
-    const approvedBy = "681117cb357e50dfa229b5f2";
+    // Use the CRM user's ID from token
+    const approvedBy = creatorId;
 
     // Update personal details with approval
     const updatedApplication = await PersonalDetails.findOneAndUpdate(
