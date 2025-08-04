@@ -1,5 +1,6 @@
 const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
+const personalDetailsHandler = require("../handlers/personal.details.handler");
 const joischemas = require("../validation/index.js");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 
@@ -28,28 +29,37 @@ exports.createSubscriptionDetails = async (req, res) => {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
     const validatedData = await joischemas.subscription_details_create.validateAsync(req.body);
 
-    try {
-      if (userType === "CRM") {
-        // For CRM users, check if subscription details exist by ApplicationId
-        const existingSubscriptionDetails = await subscriptionDetailsHandler.getByApplicationId(validatedData.ApplicationId);
-        if (existingSubscriptionDetails) {
-          return res.fail("Subscription details already exist for this Application ID, please update existing details");
-        }
-      } else {
-        const existingSubscriptionDetails = await subscriptionDetailsHandler.getByUserId(userId);
-        if (existingSubscriptionDetails) {
-          return res.fail("Subscription details already exist, please update existing details");
-        }
+    // Get application ID from URL parameters
+    const applicationId = req.params.applicationId;
+    if (!applicationId) {
+      return res.fail("Application ID is required in URL parameters");
+    }
+
+    const personalDetails = await personalDetailsHandler.getApplicationById(applicationId);
+    if (!personalDetails) {
+      return res.fail("Application not found");
+    }
+
+    const existingSubscriptionDetails = await subscriptionDetailsHandler.getByApplicationId(applicationId);
+    if (existingSubscriptionDetails) {
+      return res.fail("Subscription details already exist for this Application ID, please update existing details");
+    }
+
+    // Validate user permissions
+    if (userType === "CRM") {
+      // CRM users can create for any application - no user ID check needed
+    } else {
+      // PORTAL users can only create for their own applications
+      if (personalDetails.userId?.toString() !== userId?.toString()) {
+        return res.fail("Access denied. You can only create subscription details for your own applications.");
       }
-    } catch (error) {
-      console.error("SubscriptionDetailsController [createSubscriptionDetails] Error:", error);
-      return res.serverError(error);
     }
 
     // Create new subscription details
     const result = await subscriptionDetailsHandler.create({
       ...validatedData,
-      userId,
+      ApplicationId: applicationId,
+      userId: userId,
       meta: { createdBy: creatorId, userType },
     });
 
@@ -57,7 +67,7 @@ exports.createSubscriptionDetails = async (req, res) => {
   } catch (error) {
     console.error("SubscriptionDetailsController [createSubscriptionDetails] Error:", error);
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.details[0].message);
+      return res.fail("Validation error: " + error.message);
     }
     return res.serverError(error);
   }

@@ -1,5 +1,6 @@
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
 const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
+const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 
@@ -33,39 +34,44 @@ exports.createProfessionalDetails = async (req, res) => {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
     const validatedData = await joischemas.professional_details_create.validateAsync(req.body);
 
-    try {
-      if (userType === "CRM") {
-        // For CRM users, check if professional details exist by ApplicationId
-        const existingProfessionalDetails = await professionalDetailsHandler.getByApplicationId(validatedData.ApplicationId);
-        if (existingProfessionalDetails) {
-          return res.fail("Professional details already exist for this Application ID, please update existing details");
-        }
-      } else {
-        const existingProfessionalDetails = await professionalDetailsHandler.getByUserId(userId);
-        if (existingProfessionalDetails) {
-          return res.fail("Professional details already exist, please update existing details");
-        }
-      }
-    } catch (error) {
-      console.error("ProfessionalDetailsController [createProfessionalDetails] Error:", error);
-      return res.serverError(error);
+    // Get application ID from URL parameters
+    const applicationId = req.params.applicationId;
+    if (!applicationId) {
+      return res.fail("Application ID is required in URL parameters");
     }
 
-    const applicationId = await professionalDetailsHandler.checkApplicationId(validatedData.ApplicationId);
-    if (!applicationId) {
-      return res.fail("Application ID not found, please enter a valid application ID");
+    const personalDetails = await personalDetailsHandler.getApplicationById(applicationId);
+    if (!personalDetails) {
+      return res.fail("Application not found");
+    }
+
+    const existingProfessionalDetails = await professionalDetailsHandler.getByApplicationId(applicationId);
+    if (existingProfessionalDetails) {
+      return res.fail("Professional details already exist for this Application , please update existing details");
+    }
+
+    // Validate user permissions
+    if (userType === "CRM") {
+    } else {
+      if (personalDetails.userId?.toString() !== userId?.toString()) {
+        return res.fail("Access denied. You can only create professional details for your own applications.");
+      }
     }
 
     // Create new professional details
     const result = await professionalDetailsHandler.create({
       ...validatedData,
-      userId,
+      ApplicationId: applicationId,
+      userId: userId,
       meta: { createdBy: creatorId, userType },
     });
 
     return res.success(result);
   } catch (error) {
     console.error("ProfessionalDetailsController [createProfessionalDetails] Error:", error);
+    if (error.isJoi) {
+      return res.fail("Validation error: " + error.message);
+    }
     return res.serverError(error);
   }
 };

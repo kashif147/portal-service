@@ -66,7 +66,6 @@ module.exports.application_approve = Joi.object({
 });
 
 module.exports.professional_details_create = Joi.object({
-  ApplicationId: Joi.string().required(),
   professionalDetails: Joi.object({
     membershipCategory: Joi.string().optional(),
     workLocation: Joi.string().optional(),
@@ -109,7 +108,6 @@ module.exports.professional_details_update = Joi.object({
 });
 
 module.exports.subscription_details_create = Joi.object({
-  ApplicationId: Joi.string().required(),
   subscriptionDetails: Joi.object({
     paymentType: Joi.string().optional(),
     payrollNo: Joi.string().optional(),
