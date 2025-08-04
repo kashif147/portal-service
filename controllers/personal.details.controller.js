@@ -61,6 +61,9 @@ exports.getPersonalDetails = async (req, res) => {
     }
   } catch (error) {
     console.error("PersonalDetailsController [getPersonalDetails] Error:", error);
+    if (error.message === "Personal details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
@@ -93,6 +96,9 @@ exports.updatePersonalDetails = async (req, res) => {
     if (error.isJoi) {
       return res.fail("Validation error: " + error.message);
     }
+    if (error.message === "Personal details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
@@ -115,6 +121,9 @@ exports.deletePersonalDetails = async (req, res) => {
     return res.success("Personal details deleted successfully");
   } catch (error) {
     console.error("PersonalDetailsController [deletePersonalDetails] Error:", error);
+    if (error.message === "Personal details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };

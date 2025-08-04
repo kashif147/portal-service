@@ -72,32 +72,45 @@ exports.createProfessionalDetails = async (req, res) => {
 
 exports.getProfessionalDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
 
-    let result;
-    if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
-      result = await professionalDetailsHandler.getByApplicationId(applicationId);
-    } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await professionalDetailsHandler.getByUserId(userId);
+    if (!applicationId) {
+      return res.fail("Application ID is required");
     }
 
-    return res.success(result);
+    if (userType === "CRM") {
+      const professionalDetails = await professionalDetailsHandler.getApplicationById(applicationId);
+      if (!professionalDetails) {
+        return res.fail("Professional details not found");
+      }
+      return res.success(professionalDetails);
+    } else {
+      const professionalDetails = await professionalDetailsHandler.getByUserIdAndApplicationId(userId, applicationId);
+      if (!professionalDetails) {
+        return res.fail("Professional details not found");
+      }
+      return res.success(professionalDetails);
+    }
   } catch (error) {
     console.error("ProfessionalDetailsController [getProfessionalDetails] Error:", error);
+    if (error.message === "Professional details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
 
 exports.updateProfessionalDetails = async (req, res) => {
   try {
-    const { userType, creatorId } = extractUserAndCreatorContext(req);
-    const validatedData = await joischemas.professional_details_update.validateAsync(req.body);
+    const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
 
+    if (!applicationId) {
+      return res.fail("Application ID is required");
+    }
+
+    const validatedData = await joischemas.professional_details_update.validateAsync(req.body);
     const updatePayload = {
       ...validatedData,
       meta: { updatedBy: creatorId, userType },
@@ -105,24 +118,17 @@ exports.updateProfessionalDetails = async (req, res) => {
 
     let result;
     if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
       result = await professionalDetailsHandler.updateByApplicationId(applicationId, updatePayload);
     } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await professionalDetailsHandler.updateByUserId(userId, updatePayload);
+      result = await professionalDetailsHandler.updateByUserIdAndApplicationId(userId, applicationId, updatePayload);
     }
-
-    // // Update subscription details with professional details if subscription exists
-    // if (result && result.professionalDetails) {
-    //   await updateSubscriptionWithProfessionalDetails(userId, result.professionalDetails);
-    // }
 
     return res.success(result);
   } catch (error) {
     console.error("ProfessionalDetailsController [updateProfessionalDetails] Error:", error);
+    if (error.isJoi) {
+      return res.fail("Validation error: " + error.message);
+    }
     if (error.message === "Professional details not found") {
       return res.fail(error.message);
     }
@@ -132,17 +138,17 @@ exports.updateProfessionalDetails = async (req, res) => {
 
 exports.deleteProfessionalDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    if (!applicationId) {
+      return res.fail("Application ID is required");
+    }
 
     if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
       await professionalDetailsHandler.deleteByApplicationId(applicationId);
     } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      await professionalDetailsHandler.deleteByUserId(userId);
+      await professionalDetailsHandler.deleteByUserIdAndApplicationId(userId, applicationId);
     }
 
     return res.success("Professional details deleted successfully");

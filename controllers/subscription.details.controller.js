@@ -65,30 +65,44 @@ exports.createSubscriptionDetails = async (req, res) => {
 
 exports.getSubscriptionDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
 
-    let result;
-    if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
-      result = await subscriptionDetailsHandler.getByApplicationId(applicationId);
-    } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await subscriptionDetailsHandler.getByUserId(userId);
+    if (!applicationId) {
+      return res.fail("Application ID is required");
     }
 
-    return res.success(result);
+    if (userType === "CRM") {
+      const subscriptionDetails = await subscriptionDetailsHandler.getApplicationById(applicationId);
+      if (!subscriptionDetails) {
+        return res.fail("Subscription details not found");
+      }
+      return res.success(subscriptionDetails);
+    } else {
+      const subscriptionDetails = await subscriptionDetailsHandler.getByUserIdAndApplicationId(userId, applicationId);
+      if (!subscriptionDetails) {
+        return res.fail("Subscription details not found");
+      }
+      return res.success(subscriptionDetails);
+    }
   } catch (error) {
     console.error("SubscriptionDetailsController [getSubscriptionDetails] Error:", error);
+    if (error.message === "Subscription details not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
 
 exports.updateSubscriptionDetails = async (req, res) => {
   try {
-    const { userType, creatorId } = extractUserAndCreatorContext(req);
+    const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    if (!applicationId) {
+      return res.fail("Application ID is required");
+    }
+
     const validatedData = await joischemas.subscription_details_update.validateAsync(req.body);
     const updatePayload = {
       ...validatedData,
@@ -97,21 +111,16 @@ exports.updateSubscriptionDetails = async (req, res) => {
 
     let result;
     if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
       result = await subscriptionDetailsHandler.updateByApplicationId(applicationId, updatePayload);
     } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await subscriptionDetailsHandler.updateByUserId(userId, updatePayload);
+      result = await subscriptionDetailsHandler.updateByUserIdAndApplicationId(userId, applicationId, updatePayload);
     }
 
     return res.success(result);
   } catch (error) {
     console.error("SubscriptionDetailsController [updateSubscriptionDetails] Error:", error);
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.details[0].message);
+      return res.fail("Validation error: " + error.message);
     }
     if (error.message === "Subscription details not found") {
       return res.fail(error.message);
@@ -122,17 +131,17 @@ exports.updateSubscriptionDetails = async (req, res) => {
 
 exports.deleteSubscriptionDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    if (!applicationId) {
+      return res.fail("Application ID is required");
+    }
 
     if (userType === "CRM") {
-      const applicationId = req.params.applicationId || req.query.applicationId;
-      if (!applicationId) {
-        return res.fail("Application ID parameter is required for CRM operations");
-      }
       await subscriptionDetailsHandler.deleteByApplicationId(applicationId);
     } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      await subscriptionDetailsHandler.deleteByUserId(userId);
+      await subscriptionDetailsHandler.deleteByUserIdAndApplicationId(userId, applicationId);
     }
 
     return res.success("Subscription details deleted successfully");

@@ -264,3 +264,55 @@ exports.checkifSoftDeleted = (userId) =>
       reject(error);
     }
   });
+
+exports.getApplicationById = (applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await SubscriptionDetails.findOne({ ApplicationId: applicationId });
+      resolve(record);
+    } catch (error) {
+      console.error("SubscriptionDetailsHandler [getApplicationById] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.getByUserIdAndApplicationId = (userId, applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await SubscriptionDetails.findOne({
+        userId: userId,
+        ApplicationId: applicationId,
+      });
+      resolve(record);
+    } catch (error) {
+      console.error("SubscriptionDetailsHandler [getByUserIdAndApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await SubscriptionDetails.findOneAndUpdate({ userId: userId, ApplicationId: applicationId }, updateData, {
+        new: true,
+        runValidators: true,
+      });
+      if (!record) return reject(new Error("Subscription details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("SubscriptionDetailsHandler [updateByUserIdAndApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await SubscriptionDetails.findOneAndDelete({ userId: userId, ApplicationId: applicationId });
+      if (!record) return reject(new Error("Subscription details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("SubscriptionDetailsHandler [deleteByUserIdAndApplicationId] Error:", error);
+      reject(error);
+    }
+  });
