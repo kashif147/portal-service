@@ -12,7 +12,6 @@ const verifyJWT = (req, res, next) => {
     }
 
     req.user = decoded.user;
-    req.roles = decoded.UserInfo.roles || [];
     next();
   });
 };

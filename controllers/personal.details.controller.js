@@ -39,21 +39,26 @@ exports.createPersonalDetails = async (req, res) => {
 
 exports.getPersonalDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
 
-    let result;
-    if (userType === "CRM") {
-      const email = req.params.email || req.query.email;
-      if (!email) {
-        return res.fail("Email parameter is required for CRM operations");
-      }
-      result = await personalDetailsHandler.getByEmail(email);
-    } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await personalDetailsHandler.getByUserId(userId);
+    if (!applicationId) {
+      return res.fail("Application ID is required");
     }
 
-    return res.success(result);
+    if (userType === "CRM") {
+      const personalDetails = await personalDetailsHandler.getApplicationById(applicationId);
+      if (!personalDetails) {
+        return res.fail("Personal details not found");
+      }
+      return res.success(personalDetails);
+    } else {
+      const personalDetails = await personalDetailsHandler.getByUserIdAndApplicationId(userId, applicationId);
+      if (!personalDetails) {
+        return res.fail("Personal details not found");
+      }
+      return res.success(personalDetails);
+    }
   } catch (error) {
     console.error("PersonalDetailsController [getPersonalDetails] Error:", error);
     return res.serverError(error);
@@ -62,10 +67,14 @@ exports.getPersonalDetails = async (req, res) => {
 
 exports.updatePersonalDetails = async (req, res) => {
   try {
-    const { userType, creatorId } = extractUserAndCreatorContext(req);
+    const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    if (!applicationId) {
+      return res.fail("Application ID is required");
+    }
 
     const validatedData = await joischemas.personal_details_update.validateAsync(req.body);
-
     const updatePayload = {
       ...validatedData,
       meta: { updatedBy: creatorId, userType },
@@ -73,14 +82,9 @@ exports.updatePersonalDetails = async (req, res) => {
 
     let result;
     if (userType === "CRM") {
-      const email = req.params.email || req.query.email;
-      if (!email) {
-        return res.fail("Email parameter is required for CRM operations");
-      }
-      result = await personalDetailsHandler.updateByEmail(email, updatePayload);
+      result = await personalDetailsHandler.updateByApplicationId(applicationId, updatePayload);
     } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      result = await personalDetailsHandler.updateByUserId(userId, updatePayload);
+      result = await personalDetailsHandler.updateByUserIdAndApplicationId(userId, applicationId, updatePayload);
     }
 
     return res.success(result);
@@ -95,20 +99,20 @@ exports.updatePersonalDetails = async (req, res) => {
 
 exports.deletePersonalDetails = async (req, res) => {
   try {
-    const { userType } = extractUserAndCreatorContext(req);
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
 
-    if (userType === "CRM") {
-      const email = req.params.email || req.query.email;
-      if (!email) {
-        return res.fail("Email parameter is required for CRM operations");
-      }
-      await personalDetailsHandler.deleteByEmail(email);
-    } else {
-      const { userId } = extractUserAndCreatorContext(req);
-      await personalDetailsHandler.deleteByUserId(userId);
+    if (!applicationId) {
+      return res.fail("Application ID is required");
     }
 
-    return res.success("personal details deleted successfully");
+    if (userType === "CRM") {
+      await personalDetailsHandler.deleteByApplicationId(applicationId);
+    } else {
+      await personalDetailsHandler.deleteByUserIdAndApplicationId(userId, applicationId);
+    }
+
+    return res.success("Personal details deleted successfully");
   } catch (error) {
     console.error("PersonalDetailsController [deletePersonalDetails] Error:", error);
     return res.serverError(error);

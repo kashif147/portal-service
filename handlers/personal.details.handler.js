@@ -55,91 +55,81 @@ exports.getByEmail = (email) =>
     }
   });
 
-exports.updateByUserId = (userId, updateData) =>
+exports.getApplicationById = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndUpdate({ userId }, updateData, {
+      const result = await PersonalDetails.findOne({ ApplicationId: applicationId });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [getApplicationById] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.getByUserIdAndApplicationId = (userId, applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const result = await PersonalDetails.findOne({
+        userId: userId,
+        ApplicationId: applicationId,
+      });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [getByUserIdAndApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.updateByApplicationId = (applicationId, updateData) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await PersonalDetails.findOneAndUpdate({ ApplicationId: applicationId }, updateData, {
         new: true,
         runValidators: true,
       });
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [updateByUserId] Error:", error);
+      console.error("PersonalDetailsHandler [updateByApplicationId] Error:", error);
       reject(error);
     }
   });
 
-exports.updateByEmail = (email, updateData) =>
+exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndUpdate(
-        { $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }] },
-        updateData,
-        { new: true, runValidators: true }
-      );
-      if (!record) return reject(new Error("Personal details not found"));
-      resolve(record);
-    } catch (error) {
-      console.error("PersonalDetailsHandler [updateByEmail] Error:", error);
-      reject(error);
-    }
-  });
-
-exports.deleteByUserId = (userId) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      const record = await PersonalDetails.findOneAndDelete({ userId });
-      if (!record) return reject(new Error("Personal details not found"));
-      resolve(record);
-    } catch (error) {
-      console.error("PersonalDetailsHandler [deleteByUserId] Error:", error);
-      reject(error);
-    }
-  });
-
-exports.deleteByEmail = (email) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      const record = await PersonalDetails.findOneAndDelete(
-        {
-          $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
-        },
-        { new: true }
-      );
-      if (!record) return reject(new Error("Personal details not found"));
-      resolve(record);
-    } catch (error) {
-      console.error("PersonalDetailsHandler [deleteByEmail] Error:", error);
-      reject(error);
-    }
-  });
-
-exports.findDeletedByUserId = (userId) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      const result = await PersonalDetails.findOne({
-        userId,
-        "meta.deleted": true,
+      const record = await PersonalDetails.findOneAndUpdate({ userId: userId, ApplicationId: applicationId }, updateData, {
+        new: true,
+        runValidators: true,
       });
-      resolve(result);
+      if (!record) return reject(new Error("Personal details not found"));
+      resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [findDeletedByUserId] Error:", error);
+      console.error("PersonalDetailsHandler [updateByUserIdAndApplicationId] Error:", error);
       reject(error);
     }
   });
 
-exports.findDeletedByEmail = (email) =>
+exports.deleteByApplicationId = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      // Check both personalEmail and workEmail fields
-      const result = await PersonalDetails.findOne({
-        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
-        "meta.deleted": true,
-      });
-      resolve(result);
+      const record = await PersonalDetails.findOneAndDelete({ ApplicationId: applicationId });
+      if (!record) return reject(new Error("Personal details not found"));
+      resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [findDeletedByEmail] Error:", error);
+      console.error("PersonalDetailsHandler [deleteByApplicationId] Error:", error);
+      reject(error);
+    }
+  });
+
+exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const record = await PersonalDetails.findOneAndDelete({ userId: userId, ApplicationId: applicationId });
+      if (!record) return reject(new Error("Personal details not found"));
+      resolve(record);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [deleteByUserIdAndApplicationId] Error:", error);
       reject(error);
     }
   });

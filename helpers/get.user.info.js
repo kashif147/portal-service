@@ -1,5 +1,5 @@
 function extractUserAndCreatorContext(req) {
-  const userType = req.user?.userType || "PORTAL";
+  const userType = req.user?.userType;
   const creatorId = req.user?.id || req.user?._id;
 
   let userId = null;

@@ -4,11 +4,8 @@ const personalDetailsController = require("../controllers/personal.details.contr
 const verifyJWT = require("../middlewares/verifyJWT");
 
 router.post("/", verifyJWT, personalDetailsController.createPersonalDetails);
-router.get("/", verifyJWT, personalDetailsController.getPersonalDetails);
-router.get("/:email", verifyJWT, personalDetailsController.getPersonalDetails);
-router.put("/", verifyJWT, personalDetailsController.updatePersonalDetails);
-router.put("/:email", verifyJWT, personalDetailsController.updatePersonalDetails);
-router.delete("/", verifyJWT, personalDetailsController.deletePersonalDetails);
-router.delete("/:email", verifyJWT, personalDetailsController.deletePersonalDetails);
+router.get("/:applicationId", verifyJWT, personalDetailsController.getPersonalDetails);
+router.put("/:applicationId", verifyJWT, personalDetailsController.updatePersonalDetails);
+router.delete("/:applicationId", verifyJWT, personalDetailsController.deletePersonalDetails);
 
 module.exports = router;
