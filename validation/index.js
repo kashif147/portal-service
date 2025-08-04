@@ -54,6 +54,17 @@ module.exports.personal_details_update = Joi.object({
   }).optional(),
 });
 
+module.exports.application_status_query = Joi.object({
+  type: Joi.alternatives()
+    .try(Joi.string().valid("pending", "approved", "rejected"), Joi.array().items(Joi.string().valid("pending", "approved", "rejected")))
+    .optional(),
+});
+
+module.exports.application_approve = Joi.object({
+  applicationStatus: Joi.string().valid("pending", "approved", "rejected").required(),
+  comments: Joi.string().optional(),
+});
+
 module.exports.professional_details_create = Joi.object({
   ApplicationId: Joi.string().required(),
   professionalDetails: Joi.object({

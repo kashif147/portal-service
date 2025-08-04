@@ -2,34 +2,39 @@ const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
+const joischemas = require("../validation/index.js");
 // const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
 
 exports.getAllApplications = async (req, res) => {
   try {
-    // Check if user is CRM
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
       return res.fail("Access denied. Only CRM user can view applications.");
     }
 
-    // Get all personal details (applications)
-    // const applications = await PersonalDetails.find({ "meta.deleted": false }).populate("userId", "name email").sort({ createdAt: -1 });
-    const applications = await PersonalDetails.find().sort({ createdAt: -1 });
+    const validatedQuery = await joischemas.application_status_query.validateAsync(req.query);
 
-    // For each application, get professional and subscription details
+    let filter = {};
+    if (validatedQuery.type) {
+      if (Array.isArray(validatedQuery.type)) {
+        filter.applicationStatus = { $in: validatedQuery.type };
+      } else {
+        filter.applicationStatus = validatedQuery.type;
+      }
+    }
+    // If no type filter, get all applications
+
+    const applications = await PersonalDetails.find(filter).sort({ createdAt: -1 });
+
     const applicationsWithDetails = await Promise.all(
       applications.map(async (application) => {
         try {
-          // Get professional details
           const professionalDetails = await ProfessionalDetails.findOne({
             userId: application.userId,
-            "meta.deleted": false,
           });
 
-          // Get subscription details
           const subscriptionDetails = await SubscriptionDetails.findOne({
             userId: application.userId,
-            "meta.deleted": false,
           });
 
           return {
@@ -51,18 +56,21 @@ exports.getAllApplications = async (req, res) => {
     );
 
     return res.success({
-      applications: applicationsWithDetails,
+      filter: validatedQuery.type || "all",
       total: applicationsWithDetails.length,
+      applications: applicationsWithDetails,
     });
   } catch (error) {
     console.error("ApplicationController [getAllApplications] Error:", error);
+    if (error.isJoi) {
+      return res.fail("Validation error: " + error.message);
+    }
     return res.serverError(error);
   }
 };
 
 exports.getApplicationById = async (req, res) => {
   try {
-    // Check if user is CRM
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
       return res.fail("Access denied. Only CRM users can view applications.");
@@ -70,32 +78,26 @@ exports.getApplicationById = async (req, res) => {
 
     const { applicationId } = req.params;
 
-    // Get personal details by application ID
     const personalDetails = await PersonalDetails.findOne({
       ApplicationId: applicationId,
-      //   "meta.deleted": false,
     });
 
     if (!personalDetails) {
       return res.fail("Application not found");
     }
 
-    // Get professional details
     const professionalDetails = await ProfessionalDetails.findOne({
       userId: personalDetails.userId,
-      //   "meta.deleted": false,
     });
 
-    // Get subscription details
     const subscriptionDetails = await SubscriptionDetails.findOne({
       userId: personalDetails.userId,
-      //   "meta.deleted": false,
     });
 
     const applicationDetails = {
       applicationId: personalDetails.ApplicationId,
       userId: personalDetails.userId,
-      personalDetails: personalDetails,
+      personalDetails: personalDetails || null,
       professionalDetails: professionalDetails || null,
       subscriptionDetails: subscriptionDetails || null,
       applicationStatus: personalDetails.applicationStatus,
@@ -123,7 +125,10 @@ exports.approveApplication = async (req, res) => {
     }
 
     const { applicationId } = req.params;
-    const { comments, applicationStatus } = req.body;
+
+    // Validate request body
+    const validatedData = await joischemas.application_approve.validateAsync(req.body);
+    const { comments, applicationStatus } = validatedData;
 
     // Use the CRM user's ID from token
     const approvedBy = creatorId;
@@ -175,6 +180,9 @@ exports.approveApplication = async (req, res) => {
     });
   } catch (error) {
     console.error("ApplicationController [approveApplication] Error:", error);
+    if (error.isJoi) {
+      return res.fail("Validation error: " + error.message);
+    }
     return res.serverError(error);
   }
 };

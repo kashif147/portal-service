@@ -5,6 +5,6 @@ const verifyJWT = require("../middlewares/verifyJWT");
 
 router.get("/", verifyJWT, applicationController.getAllApplications);
 router.get("/:applicationId", verifyJWT, applicationController.getApplicationById);
-router.patch("/:applicationId/status", verifyJWT, applicationController.approveApplication);
+router.patch("/status/:applicationId", verifyJWT, applicationController.approveApplication);
 
 module.exports = router;
