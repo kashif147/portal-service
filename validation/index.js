@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { APPLICATION_STATUS, PREFERRED_ADDRESS, PREFERRED_EMAIL, PAYMENT_TYPE, PAYMENT_FREQUENCY } = require("../constants/enums");
 
 module.exports.personal_details_create = Joi.object({
   personalInfo: Joi.object({
@@ -10,7 +11,7 @@ module.exports.personal_details_create = Joi.object({
     countryPrimaryQualification: Joi.string().optional(),
   }).optional(),
   contactInfo: Joi.object({
-    preferredAddress: Joi.string().optional(),
+    preferredAddress: Joi.string().valid(Object.values(PREFERRED_ADDRESS)).optional(),
     eircode: Joi.string().optional(),
     buildingOrHouse: Joi.string().optional(),
     streetOrRoad: Joi.string().optional(),
@@ -19,7 +20,7 @@ module.exports.personal_details_create = Joi.object({
     country: Joi.string().optional(),
     mobileNumber: Joi.string().optional(),
     telephoneNumber: Joi.string().optional(),
-    preferredEmail: Joi.string().optional(),
+    preferredEmail: Joi.string().valid(Object.values(PREFERRED_EMAIL)).optional(),
     personalEmail: Joi.string().optional(),
     workEmail: Joi.string().optional(),
     consentSMS: Joi.boolean().optional(),
@@ -37,7 +38,7 @@ module.exports.personal_details_update = Joi.object({
     countryPrimaryQualification: Joi.string().optional(),
   }).optional(),
   contactInfo: Joi.object({
-    preferredAddress: Joi.string().optional(),
+    preferredAddress: Joi.string().valid(Object.values(PREFERRED_ADDRESS)).optional(),
     eircode: Joi.string().optional(),
     buildingOrHouse: Joi.string().optional(),
     streetOrRoad: Joi.string().optional(),
@@ -46,7 +47,7 @@ module.exports.personal_details_update = Joi.object({
     country: Joi.string().optional(),
     mobileNumber: Joi.string().optional(),
     telephoneNumber: Joi.string().optional(),
-    preferredEmail: Joi.string().optional(),
+    preferredEmail: Joi.string().valid(Object.values(PREFERRED_EMAIL)).optional(),
     personalEmail: Joi.string().optional(),
     workEmail: Joi.string().optional(),
     consentSMS: Joi.boolean().optional(),
@@ -56,12 +57,12 @@ module.exports.personal_details_update = Joi.object({
 
 module.exports.application_status_query = Joi.object({
   type: Joi.alternatives()
-    .try(Joi.string().valid("pending", "approved", "rejected"), Joi.array().items(Joi.string().valid("pending", "approved", "rejected")))
+    .try(Joi.string().valid(Object.values(APPLICATION_STATUS)), Joi.array().items(Joi.string().valid(Object.values(APPLICATION_STATUS))))
     .optional(),
 });
 
 module.exports.application_approve = Joi.object({
-  applicationStatus: Joi.string().valid("pending", "approved", "rejected").required(),
+  applicationStatus: Joi.string().valid(Object.values(APPLICATION_STATUS)).required(),
   comments: Joi.string().optional(),
 });
 
@@ -109,7 +110,7 @@ module.exports.professional_details_update = Joi.object({
 
 module.exports.subscription_details_create = Joi.object({
   subscriptionDetails: Joi.object({
-    paymentType: Joi.string().optional(),
+    paymentType: Joi.string().valid(Object.values(PAYMENT_TYPE)).optional(),
     payrollNo: Joi.string().optional(),
     membershipStatus: Joi.string().optional(),
     otherIrishTradeUnion: Joi.boolean().optional(),
@@ -126,13 +127,13 @@ module.exports.subscription_details_create = Joi.object({
     termsAndConditions: Joi.boolean().optional(),
     membershipCategory: Joi.string().optional(),
     dateJoined: Joi.string().optional(),
-    paymentFrequency: Joi.string().optional(),
+    paymentFrequency: Joi.string().valid(Object.values(PAYMENT_FREQUENCY)).optional(),
   }),
 });
 
 module.exports.subscription_details_update = Joi.object({
   subscriptionDetails: Joi.object({
-    paymentType: Joi.string().optional(),
+    paymentType: Joi.string().valid(Object.values(PAYMENT_TYPE)).optional(),
     payrollNo: Joi.string().optional(),
     membershipStatus: Joi.string().optional(),
     otherIrishTradeUnion: Joi.boolean().optional(),
@@ -149,6 +150,6 @@ module.exports.subscription_details_update = Joi.object({
     termsAndConditions: Joi.boolean().optional(),
     membershipCategory: Joi.string().optional(),
     dateJoined: Joi.string().optional(),
-    paymentFrequency: Joi.string().optional(),
+    paymentFrequency: Joi.string().valid(Object.values(PAYMENT_FREQUENCY)).optional(),
   }),
 });

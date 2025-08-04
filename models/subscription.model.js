@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { PAYMENT_TYPE, PAYMENT_FREQUENCY, USER_TYPE } = require("../constants/enums");
 
 const SubscriptionSchema = new mongoose.Schema(
   {
@@ -8,8 +9,8 @@ const SubscriptionSchema = new mongoose.Schema(
     subscriptionDetails: {
       paymentType: {
         type: String,
-        enum: ["Payroll Deduction", "Direct Debit", "Card Payment"],
-        default: "Payroll Deduction",
+        enum: Object.values(PAYMENT_TYPE),
+        default: PAYMENT_TYPE.PAYROLL_DEDUCTION,
       },
       payrollNo: String,
       membershipStatus: { type: String },
@@ -23,7 +24,7 @@ const SubscriptionSchema = new mongoose.Schema(
       otherSecondarySection: { type: String },
       incomeProtectionScheme: { type: Boolean, default: false },
       inmoRewards: { type: Boolean, default: false },
-      paymentFrequency: { type: String, enum: ["Monthly", "Quarterly", "Annually"], default: "Monthly" },
+      paymentFrequency: { type: String, enum: Object.values(PAYMENT_FREQUENCY), default: PAYMENT_FREQUENCY.MONTHLY },
       valueAddedServices: { type: Boolean, default: false },
       termsAndConditions: { type: Boolean, default: true },
       membershipCategory: { type: String },
@@ -44,7 +45,7 @@ const SubscriptionSchema = new mongoose.Schema(
     meta: {
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-      userType: { type: String },
+      userType: { type: String, enum: Object.values(USER_TYPE) },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },

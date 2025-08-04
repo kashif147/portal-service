@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
+const { APPLICATION_STATUS, PREFERRED_ADDRESS, PREFERRED_EMAIL, USER_TYPE } = require("../constants/enums");
 
 const ProfileSchema = new mongoose.Schema(
   {
@@ -21,7 +22,7 @@ const ProfileSchema = new mongoose.Schema(
       deceasedDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
     },
     contactInfo: {
-      preferredAddress: { type: String, enum: ["home", "work"], default: "home" },
+      preferredAddress: { type: String, enum: Object.values(PREFERRED_ADDRESS), default: PREFERRED_ADDRESS.HOME },
       eircode: String,
       buildingOrHouse: { type: String },
       streetOrRoad: String,
@@ -31,7 +32,7 @@ const ProfileSchema = new mongoose.Schema(
       fullAddress: String, //calculated via backend
       mobileNumber: String,
       telephoneNumber: String,
-      preferredEmail: { type: String, enum: ["personal", "work"], default: "personal" },
+      preferredEmail: { type: String, enum: Object.values(PREFERRED_EMAIL), default: PREFERRED_EMAIL.PERSONAL },
       personalEmail: String,
       workEmail: String,
       consentSMS: Boolean,
@@ -41,8 +42,8 @@ const ProfileSchema = new mongoose.Schema(
     // Application status for approval workflow
     applicationStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      enum: Object.values(APPLICATION_STATUS),
+      default: APPLICATION_STATUS.PENDING,
     },
     approvalDetails: {
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
@@ -54,7 +55,7 @@ const ProfileSchema = new mongoose.Schema(
     meta: {
       createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
-      userType: { type: String, enum: ["PORTAL", "CRM"], default: "PORTAL" },
+      userType: { type: String, enum: Object.values(USER_TYPE), default: USER_TYPE.PORTAL },
       deleted: { type: Boolean, default: false },
       isActive: { type: Boolean, default: true },
     },
