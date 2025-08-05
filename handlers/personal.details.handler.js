@@ -133,3 +133,17 @@ exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
       reject(error);
     }
   });
+
+exports.getByUserIdForPortal = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const result = await PersonalDetails.findOne({
+        userId: userId,
+        "meta.userType": "PORTAL",
+      });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [getByUserIdForPortal] Error:", error);
+      reject(error);
+    }
+  });

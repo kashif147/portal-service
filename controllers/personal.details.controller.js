@@ -127,3 +127,32 @@ exports.deletePersonalDetails = async (req, res) => {
     return res.serverError(error);
   }
 };
+
+exports.getMyPersonalDetails = async (req, res) => {
+  try {
+    const { userId, userType } = extractUserAndCreatorContext(req);
+
+    // Only allow PORTAL users to access this endpoint
+    if (userType !== "PORTAL") {
+      return res.fail("Access denied. only for PORTAL users.");
+    }
+
+    if (!userId) {
+      return res.fail("User ID is required");
+    }
+
+    const personalDetails = await personalDetailsHandler.getByUserIdForPortal(userId);
+
+    if (!personalDetails) {
+      return res.fail("Personal details not found for this user");
+    }
+
+    return res.success(personalDetails);
+  } catch (error) {
+    console.error("PersonalDetailsController [getMyPersonalDetails] Error:", error);
+    if (error.message === "Personal details not found") {
+      return res.fail(error.message);
+    }
+    return res.serverError(error);
+  }
+};
