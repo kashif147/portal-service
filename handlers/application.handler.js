@@ -84,6 +84,7 @@ exports.getApplicationWithDetails = (applicationId) =>
       const applicationDetails = {
         applicationId: personalDetails.ApplicationId,
         userId: personalDetails.userId,
+        membershipNumber: subscriptionDetails ? subscriptionDetails.membershipNumber : null,
         personalDetails: personalDetails,
         professionalDetails: professionalDetails ? professionalDetails.professionalDetails : null,
         subscriptionDetails: subscriptionDetails ? subscriptionDetails.subscriptionDetails : null,
@@ -122,6 +123,7 @@ exports.getAllApplicationsWithDetails = (statusFilters = []) =>
             return {
               ApplicationId: application.ApplicationId,
               userId: application.userId,
+              membershipNumber: subscriptionDetails ? subscriptionDetails.membershipNumber : null,
               personalDetails: application,
               professionalDetails: professionalDetails ? professionalDetails.professionalDetails : null,
               subscriptionDetails: subscriptionDetails ? subscriptionDetails.subscriptionDetails : null,

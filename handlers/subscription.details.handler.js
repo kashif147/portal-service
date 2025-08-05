@@ -1,10 +1,18 @@
 const SubscriptionDetails = require("../models/subscription.model");
 const personalDetails = require("../models/personal.details.model");
+const { generateMembershipNumber } = require("../helpers/membership.number.generator");
 
 exports.create = (data) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await SubscriptionDetails.create(data);
+      const membershipNumber = await generateMembershipNumber();
+
+      const dataWithMembershipNumber = {
+        ...data,
+        membershipNumber: membershipNumber,
+      };
+
+      const record = await SubscriptionDetails.create(dataWithMembershipNumber);
       resolve(record);
     } catch (error) {
       console.error("SubscriptionDetailsHandler [create] Error:", error);
