@@ -11,7 +11,9 @@ module.exports.personal_details_create = Joi.object({
     countryPrimaryQualification: Joi.string().optional(),
   }).optional(),
   contactInfo: Joi.object({
-    preferredAddress: Joi.string().valid(...Object.values(PREFERRED_ADDRESS)),
+    preferredAddress: Joi.string()
+      .valid(...Object.values(PREFERRED_ADDRESS))
+      .optional(),
     eircode: Joi.string().optional(),
     buildingOrHouse: Joi.string().optional(),
     streetOrRoad: Joi.string().optional(),
