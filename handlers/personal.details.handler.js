@@ -134,6 +134,17 @@ exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
     }
   });
 
+exports.updateApplicationStatus = (applicationId, status) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const result = await PersonalDetails.findOneAndUpdate({ ApplicationId: applicationId }, { applicationStatus: status }, { new: true });
+      resolve(result);
+    } catch (error) {
+      console.error("PersonalDetailsHandler [updateApplicationStatus] Error:", error);
+      reject(error);
+    }
+  });
+
 exports.getByUserIdForPortal = (userId) =>
   new Promise(async (resolve, reject) => {
     try {

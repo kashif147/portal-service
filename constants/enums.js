@@ -1,6 +1,7 @@
 // Application Status Enums
 exports.APPLICATION_STATUS = {
-  PENDING: "pending",
+  IN_PROGRESS: "in-progress",
+  SUBMITTED: "submitted",
   APPROVED: "approved",
   REJECTED: "rejected",
 };

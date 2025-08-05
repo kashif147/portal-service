@@ -1,6 +1,4 @@
-const PersonalDetails = require("../models/personal.details.model");
-const ProfessionalDetails = require("../models/professional.details.model");
-const SubscriptionDetails = require("../models/subscription.model");
+const applicationHandler = require("../handlers/application.handler");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 // const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
@@ -14,46 +12,16 @@ exports.getAllApplications = async (req, res) => {
 
     const validatedQuery = await joischemas.application_status_query.validateAsync(req.query);
 
-    let filter = {};
+    let statusFilters = [];
     if (validatedQuery.type) {
       if (Array.isArray(validatedQuery.type)) {
-        filter.applicationStatus = { $in: validatedQuery.type };
+        statusFilters = validatedQuery.type;
       } else {
-        filter.applicationStatus = validatedQuery.type;
+        statusFilters = [validatedQuery.type];
       }
     }
-    // If no type filter, get all applications
 
-    const applications = await PersonalDetails.find(filter).sort({ createdAt: -1 });
-
-    const applicationsWithDetails = await Promise.all(
-      applications.map(async (application) => {
-        try {
-          const professionalDetails = await ProfessionalDetails.findOne({
-            userId: application.userId,
-          });
-
-          const subscriptionDetails = await SubscriptionDetails.findOne({
-            userId: application.userId,
-          });
-
-          return {
-            ApplicationId: application.ApplicationId,
-            userId: application.userId,
-            personalDetails: application,
-            professionalDetails: professionalDetails || null,
-            subscriptionDetails: subscriptionDetails || null,
-            applicationStatus: application.applicationStatus,
-            approvalDetails: application.approvalDetails,
-            createdAt: application.createdAt,
-            updatedAt: application.updatedAt,
-          };
-        } catch (error) {
-          console.error("Error fetching details for application:", error);
-          return res.serverError(error);
-        }
-      })
-    );
+    const applicationsWithDetails = await applicationHandler.getAllApplicationsWithDetails(statusFilters);
 
     return res.success({
       filter: validatedQuery.type || "all",
@@ -75,43 +43,15 @@ exports.getApplicationById = async (req, res) => {
     if (userType !== "CRM") {
       return res.fail("Access denied. Only CRM users can view applications.");
     }
-
     const { applicationId } = req.params;
 
-    const personalDetails = await PersonalDetails.findOne({
-      ApplicationId: applicationId,
-    });
-
-    if (!personalDetails) {
-      return res.fail("Application not found");
-    }
-
-    const professionalDetails = await ProfessionalDetails.findOne({
-      userId: personalDetails.userId,
-    });
-
-    const subscriptionDetails = await SubscriptionDetails.findOne({
-      userId: personalDetails.userId,
-    });
-
-    const applicationDetails = {
-      applicationId: personalDetails.ApplicationId,
-      userId: personalDetails.userId,
-      personalDetails: personalDetails || null,
-      professionalDetails: professionalDetails || null,
-      subscriptionDetails: subscriptionDetails || null,
-      applicationStatus: personalDetails.applicationStatus,
-      approvalDetails: personalDetails.approvalDetails,
-      createdAt: personalDetails.createdAt,
-      updatedAt: personalDetails.updatedAt,
-    };
-
-    return res.success({
-      message: "Application details retrieved successfully",
-      data: applicationDetails,
-    });
+    const applicationDetails = await applicationHandler.getApplicationWithDetails(applicationId);
+    return res.success(applicationDetails);
   } catch (error) {
     console.error("ApplicationController [getApplicationById] Error:", error);
+    if (error.message === "Application not found") {
+      return res.fail(error.message);
+    }
     return res.serverError(error);
   }
 };
@@ -130,28 +70,8 @@ exports.approveApplication = async (req, res) => {
     const validatedData = await joischemas.application_approve.validateAsync(req.body);
     const { comments, applicationStatus } = validatedData;
 
-    // Use the CRM user's ID from token
-    const approvedBy = creatorId;
-
-    // Update personal details with approval
-    const updatedApplication = await PersonalDetails.findOneAndUpdate(
-      //   { ApplicationId: applicationId, "meta.deleted": false },
-      { ApplicationId: applicationId },
-      {
-        applicationStatus: applicationStatus,
-        approvalDetails: {
-          approvedBy: approvedBy,
-          approvedAt: new Date(),
-          comments: comments || "",
-        },
-        "meta.updatedBy": approvedBy,
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedApplication) {
-      return res.fail("Application not found");
-    }
+    // Use the new application handler
+    const updatedApplication = await applicationHandler.updateApplicationStatus(applicationId, applicationStatus, creatorId, comments);
 
     // // Get subscription details for the user
     // const subscriptionDetails = await SubscriptionDetails.findOne({
@@ -182,6 +102,12 @@ exports.approveApplication = async (req, res) => {
     console.error("ApplicationController [approveApplication] Error:", error);
     if (error.isJoi) {
       return res.fail("Validation error: " + error.message);
+    }
+    if (error.message.includes("Invalid status")) {
+      return res.fail(error.message);
+    }
+    if (error.message.includes("Application not found")) {
+      return res.fail(error.message);
     }
     return res.serverError(error);
   }

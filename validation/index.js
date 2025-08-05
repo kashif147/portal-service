@@ -70,9 +70,7 @@ module.exports.application_status_query = Joi.object({
 });
 
 module.exports.application_approve = Joi.object({
-  applicationStatus: Joi.string()
-    .valid(...Object.values(APPLICATION_STATUS))
-    .required(),
+  applicationStatus: Joi.string().valid(APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED).required(),
   comments: Joi.string().optional(),
 });
 

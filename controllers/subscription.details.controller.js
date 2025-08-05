@@ -3,6 +3,7 @@ const professionalDetailsHandler = require("../handlers/professional.details.han
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const joischemas = require("../validation/index.js");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
+const { APPLICATION_STATUS } = require("../constants/enums");
 
 // Function to extract professional details for subscription
 // const extractProfessionalDetailsForSubscription = async (userId) => {
@@ -62,6 +63,9 @@ exports.createSubscriptionDetails = async (req, res) => {
       userId: userId,
       meta: { createdBy: creatorId, userType },
     });
+
+    // Update application status to submitted (complete application)
+    await personalDetailsHandler.updateApplicationStatus(applicationId, APPLICATION_STATUS.SUBMITTED);
 
     return res.success(result);
   } catch (error) {

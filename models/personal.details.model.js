@@ -43,7 +43,7 @@ const ProfileSchema = new mongoose.Schema(
     applicationStatus: {
       type: String,
       enum: Object.values(APPLICATION_STATUS),
-      default: APPLICATION_STATUS.PENDING,
+      default: APPLICATION_STATUS.IN_PROGRESS,
     },
     approvalDetails: {
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
