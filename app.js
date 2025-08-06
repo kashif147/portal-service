@@ -11,7 +11,7 @@ const session = require("express-session");
 const loggerMiddleware = require("./middlewares/logger.mw");
 const responseMiddleware = require("./middlewares/response.mw");
 
-require("message-bus/src/index");
+// require("message-bus/src/index");
 
 var app = express();
 

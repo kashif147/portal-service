@@ -127,7 +127,6 @@ exports.deletePersonalDetails = async (req, res) => {
     return res.serverError(error);
   }
 };
-
 exports.getMyPersonalDetails = async (req, res) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
