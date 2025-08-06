@@ -3,10 +3,47 @@ const PersonalDetails = require("../models/personal.details.model");
 exports.create = (data) =>
   new Promise(async (resolve, reject) => {
     try {
-      // Age calculation
+      // Age calculation and date conversion
       if (data.personalInfo?.dateOfBirth) {
-        const dob = new Date(data.personalInfo.dateOfBirth.split("/").reverse().join("-"));
+        let dob;
+
+        // If it's already a Date object (from Joi.date().iso())
+        if (data.personalInfo.dateOfBirth instanceof Date) {
+          dob = data.personalInfo.dateOfBirth;
+        } else {
+          // If it's a string, check format
+          const dateStr = data.personalInfo.dateOfBirth.toString();
+          if (dateStr.includes("/")) {
+            dob = new Date(dateStr.split("/").reverse().join("-"));
+          } else {
+            // ISO format
+            dob = new Date(dateStr);
+          }
+        }
+
+        data.personalInfo.dateOfBirth = dob;
         data.personalInfo.age = new Date().getFullYear() - dob.getFullYear();
+      }
+
+      // Convert deceasedDate if present
+      if (data.personalInfo?.deceasedDate) {
+        let deceasedDate;
+
+        // If it's already a Date object (from Joi.date().iso())
+        if (data.personalInfo.deceasedDate instanceof Date) {
+          deceasedDate = data.personalInfo.deceasedDate;
+        } else {
+          // If it's a string, check format
+          const dateStr = data.personalInfo.deceasedDate.toString();
+          if (dateStr.includes("/")) {
+            deceasedDate = new Date(dateStr.split("/").reverse().join("-"));
+          } else {
+            // ISO format
+            deceasedDate = new Date(dateStr);
+          }
+        }
+
+        data.personalInfo.deceasedDate = deceasedDate;
       }
 
       // Address formatting

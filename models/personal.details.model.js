@@ -11,32 +11,32 @@ const ProfileSchema = new mongoose.Schema(
     },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
     personalInfo: {
-      title: { type: String },
-      surname: { type: String },
-      forename: { type: String },
-      gender: { type: String },
-      dateOfBirth: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
-      age: Number, //calculated via backend
-      countryPrimaryQualification: { type: String },
+      title: { type: String, allowNull: true },
+      surname: { type: String, allowNull: true },
+      forename: { type: String, allowNull: true },
+      gender: { type: String, allowNull: true },
+      dateOfBirth: { type: Date, allowNull: true },
+      age: { type: Number, allowNull: true }, //calculated via backend
+      countryPrimaryQualification: { type: String, allowNull: true },
       deceased: { type: Boolean, default: false },
-      deceasedDate: { type: String, match: /^\d{2}\/\d{2}\/\d{4}$/ },
+      deceasedDate: { type: Date, allowNull: true },
     },
     contactInfo: {
       preferredAddress: { type: String, enum: Object.values(PREFERRED_ADDRESS), default: PREFERRED_ADDRESS.HOME },
-      eircode: String,
-      buildingOrHouse: { type: String },
-      streetOrRoad: String,
-      areaOrTown: String,
-      countyCityOrPostCode: { type: String },
-      country: String,
-      fullAddress: String, //calculated via backend
-      mobileNumber: String,
-      telephoneNumber: String,
+      eircode: { type: String, allowNull: true },
+      buildingOrHouse: { type: String, allowNull: true },
+      streetOrRoad: { type: String, allowNull: true },
+      areaOrTown: { type: String, allowNull: true },
+      countyCityOrPostCode: { type: String, allowNull: true },
+      country: { type: String, allowNull: true },
+      fullAddress: { type: String, allowNull: true }, //calculated via backend
+      mobileNumber: { type: String, allowNull: true },
+      telephoneNumber: { type: String, allowNull: true },
       preferredEmail: { type: String, enum: Object.values(PREFERRED_EMAIL), default: PREFERRED_EMAIL.PERSONAL },
-      personalEmail: String,
-      workEmail: String,
-      consentSMS: Boolean,
-      consentEmail: Boolean,
+      personalEmail: { type: String, allowNull: true },
+      workEmail: { type: String, allowNull: true },
+      consentSMS: { type: Boolean, default: false },
+      consentEmail: { type: Boolean, default: false },
     },
 
     // Application status for approval workflow
