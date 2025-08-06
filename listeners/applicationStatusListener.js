@@ -1,83 +1,83 @@
-const { subscribeToEvent } = require("message-bus");
-const PersonalDetails = require("../models/personal.details.model");
-const { emitApplicationStatusUpdated, emitApplicationApproved } = require("../events/userInformationEvents");
+// const { subscribeToEvent } = require("message-bus");
+// const PersonalDetails = require("../models/personal.details.model");
+// const { emitApplicationStatusUpdated, emitApplicationApproved } = require("../events/userInformationEvents");
 
-class ApplicationStatusListener {
-  constructor() {
-    this.initializeListeners();
-  }
+// class ApplicationStatusListener {
+//   constructor() {
+//     this.initializeListeners();
+//   }
 
-  async initializeListeners() {
-    try {
-      // Listen for application approval/rejection from Config Service
-      await subscribeToEvent("application.approvalRequest", this.handleApplicationApproval.bind(this));
-      
-      console.log("✅ Application Status Listener initialized successfully");
-    } catch (error) {
-      console.error("❌ Error initializing Application Status Listener:", error.message);
-    }
-  }
+//   async initializeListeners() {
+//     try {
+//       // Listen for application approval/rejection from Config Service
+//       await subscribeToEvent("application.approvalRequest", this.handleApplicationApproval.bind(this));
 
-  async handleApplicationApproval(data) {
-    try {
-      console.log("📥 Received application approval request:", data);
+//       console.log("✅ Application Status Listener initialized successfully");
+//     } catch (error) {
+//       console.error("❌ Error initializing Application Status Listener:", error.message);
+//     }
+//   }
 
-      const { personalDetailsId, status, approvedBy, comments, rejectionReason } = data;
+//   async handleApplicationApproval(data) {
+//     try {
+//       console.log("📥 Received application approval request:", data);
 
-      // Find the personal details record
-      const personalDetails = await PersonalDetails.findById(personalDetailsId);
-      if (!personalDetails) {
-        console.error("❌ Personal details not found for ID:", personalDetailsId);
-        return;
-      }
+//       const { personalDetailsId, status, approvedBy, comments, rejectionReason } = data;
 
-      // Update application status
-      const updateData = {
-        applicationStatus: status,
-        approvalDetails: {
-          approvedBy: approvedBy,
-          approvedAt: new Date(),
-          comments: comments,
-          rejectionReason: rejectionReason
-        }
-      };
+//       // Find the personal details record
+//       const personalDetails = await PersonalDetails.findById(personalDetailsId);
+//       if (!personalDetails) {
+//         console.error("❌ Personal details not found for ID:", personalDetailsId);
+//         return;
+//       }
 
-      const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
-        personalDetailsId,
-        updateData,
-        { new: true }
-      );
+//       // Update application status
+//       const updateData = {
+//         applicationStatus: status,
+//         approvalDetails: {
+//           approvedBy: approvedBy,
+//           approvedAt: new Date(),
+//           comments: comments,
+//           rejectionReason: rejectionReason
+//         }
+//       };
 
-      console.log("✅ Application status updated to:", status);
+//       const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
+//         personalDetailsId,
+//         updateData,
+//         { new: true }
+//       );
 
-      // Emit status updated event
-      await emitApplicationStatusUpdated({
-        personalDetailsId: personalDetailsId,
-        userId: personalDetails.userId,
-        applicationStatus: status,
-        approvalDetails: updateData.approvalDetails
-      });
+//       console.log("✅ Application status updated to:", status);
 
-      // If approved, emit approval event with subscription details
-      if (status === "approved") {
-        // Get subscription details for the approved application
-        const SubscriptionDetails = require("../models/subscription.model");
-        const subscriptionDetails = await SubscriptionDetails.findOne({ 
-          profileId: personalDetailsId 
-        });
+//       // Emit status updated event
+//       await emitApplicationStatusUpdated({
+//         personalDetailsId: personalDetailsId,
+//         userId: personalDetails.userId,
+//         applicationStatus: status,
+//         approvalDetails: updateData.approvalDetails
+//       });
 
-        await emitApplicationApproved({
-          personalDetailsId: personalDetailsId,
-          userId: personalDetails.userId,
-          subscriptionDetails: subscriptionDetails,
-          approvalDetails: updateData.approvalDetails
-        });
-      }
+//       // If approved, emit approval event with subscription details
+//       if (status === "approved") {
+//         // Get subscription details for the approved application
+//         const SubscriptionDetails = require("../models/subscription.model");
+//         const subscriptionDetails = await SubscriptionDetails.findOne({
+//           profileId: personalDetailsId
+//         });
 
-    } catch (error) {
-      console.error("❌ Error handling application approval:", error.message);
-    }
-  }
-}
+//         await emitApplicationApproved({
+//           personalDetailsId: personalDetailsId,
+//           userId: personalDetails.userId,
+//           subscriptionDetails: subscriptionDetails,
+//           approvalDetails: updateData.approvalDetails
+//         });
+//       }
 
-module.exports = new ApplicationStatusListener(); 
+//     } catch (error) {
+//       console.error("❌ Error handling application approval:", error.message);
+//     }
+//   }
+// }
+
+// module.exports = new ApplicationStatusListener();
