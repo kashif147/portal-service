@@ -12,12 +12,12 @@ exports.createPersonalDetails = async (req, res) => {
       const email = req.body.contactInfo?.personalEmail || req.body.contactInfo?.workEmail;
       const existingPersonalDetails = await personalDetailsHandler.getByEmail(email);
       if (existingPersonalDetails) {
-        return res.success("Personal details already exist, please update existing details");
+        return res.fail("Personal details already exist, please update existing details");
       }
     } else {
       const existingPersonalDetails = await personalDetailsHandler.getByUserId(userId);
       if (existingPersonalDetails) {
-        return res.success("Personal details already exist, please update existing details");
+        return res.fail("Personal details already exist, please update existing details");
       }
     }
 
