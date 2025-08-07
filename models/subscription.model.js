@@ -30,6 +30,7 @@ const SubscriptionSchema = new mongoose.Schema(
       termsAndConditions: { type: Boolean, default: true },
       membershipCategory: { type: String, allowNull: true },
       dateJoined: { type: Date, allowNull: true },
+      submissionDate: { type: Date, default: Date.now },
       dateLeft: { type: Date, allowNull: true },
       reasonLeft: { type: String, allowNull: true },
     },
