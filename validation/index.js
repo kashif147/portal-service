@@ -79,7 +79,7 @@ module.exports.application_approve = Joi.object({
   applicationStatus: Joi.string().valid(APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED).required(),
   comments: Joi.string().optional(),
 });
-
+//
 module.exports.professional_details_create = Joi.object({
   professionalDetails: Joi.object({
     membershipCategory: Joi.string().optional().default(null),
