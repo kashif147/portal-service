@@ -35,8 +35,7 @@ const ProfileSchema = new mongoose.Schema(
       preferredEmail: { type: String, enum: Object.values(PREFERRED_EMAIL), default: PREFERRED_EMAIL.PERSONAL },
       personalEmail: { type: String, allowNull: true },
       workEmail: { type: String, allowNull: true },
-      consentSMS: { type: Boolean, default: false },
-      consentEmail: { type: Boolean, default: false },
+      consent: { type: Boolean, default: false },
     },
 
     // Application status for approval workflow

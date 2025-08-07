@@ -31,8 +31,7 @@ module.exports.personal_details_create = Joi.object({
       .default(null),
     personalEmail: Joi.string().optional().default(null),
     workEmail: Joi.string().optional().default(null),
-    consentSMS: Joi.boolean().optional().default(false),
-    consentEmail: Joi.boolean().optional().default(false),
+    consent: Joi.boolean().optional().default(false),
   }),
 });
 
@@ -66,8 +65,7 @@ module.exports.personal_details_update = Joi.object({
       .default(null),
     personalEmail: Joi.string().optional().default(null),
     workEmail: Joi.string().optional().default(null),
-    consentSMS: Joi.boolean().optional().default(false),
-    consentEmail: Joi.boolean().optional().default(false),
+    consent: Joi.boolean().optional().default(false),
   }),
 });
 
