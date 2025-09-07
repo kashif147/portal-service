@@ -12,6 +12,7 @@
     "url": "https://github.com/kashif147/portal-service.git"
   },
   "dependencies": {
+    "@membership/shared-constants": "github:kashif147/membership-shared-constants#v1.0.0",
     "axios": "^1.6.7",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",

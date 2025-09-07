@@ -37,3 +37,11 @@ exports.PAYMENT_FREQUENCY = {
   QUARTERLY: "Quarterly",
   ANNUALLY: "Annually",
 };
+
+exports.MEMBERSHIP_STATUS = {
+  ACTIVE: "Active",
+  RESIGNED: "Resigned",
+  CANCELLED: "Cancelled",
+  SUSPENDED: "Suspended",
+  ARCHIVED: "Archived",
+};
