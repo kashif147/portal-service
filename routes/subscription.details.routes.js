@@ -1,11 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const subscriptionDetailsController = require("../controllers/subscription.details.controller");
-const verifyJWT = require("../middlewares/verifyJWT");
+const { defaultPolicyMiddleware } = require("../middlewares/policy.middleware");
 
-router.post("/:applicationId", verifyJWT, subscriptionDetailsController.createSubscriptionDetails);
-router.get("/:applicationId", verifyJWT, subscriptionDetailsController.getSubscriptionDetails);
-router.put("/:applicationId", verifyJWT, subscriptionDetailsController.updateSubscriptionDetails);
-router.delete("/:applicationId", verifyJWT, subscriptionDetailsController.deleteSubscriptionDetails);
+router.post(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "create"),
+  subscriptionDetailsController.createSubscriptionDetails
+);
+router.get(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "read"),
+  subscriptionDetailsController.getSubscriptionDetails
+);
+router.put(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "write"),
+  subscriptionDetailsController.updateSubscriptionDetails
+);
+router.delete(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "delete"),
+  subscriptionDetailsController.deleteSubscriptionDetails
+);
 
 module.exports = router;

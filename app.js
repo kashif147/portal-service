@@ -10,6 +10,8 @@ const session = require("express-session");
 
 const loggerMiddleware = require("./middlewares/logger.mw");
 const responseMiddleware = require("./middlewares/response.mw");
+const { authenticate } = require("./middlewares/auth");
+const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 
 // require("message-bus/src/index");
 
@@ -33,6 +35,18 @@ app.use(
     saveUninitialized: false,
   })
 );
+
+// Initialize authentication middleware
+app.use(authenticate);
+
+// Error handling for policy service failures
+app.use((err, req, res, next) => {
+  if (err.isPolicyError) {
+    console.error("Policy service error:", err.message);
+    return res.status(503).json({ error: "Service Unavailable" });
+  }
+  next(err);
+});
 
 app.set("view engine", "ejs");
 

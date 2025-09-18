@@ -1,12 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const personalDetailsController = require("../controllers/personal.details.controller");
-const verifyJWT = require("../middlewares/verifyJWT");
+const { defaultPolicyMiddleware } = require("../middlewares/policy.middleware");
 
-router.post("/", verifyJWT, personalDetailsController.createPersonalDetails);
-router.get("/", verifyJWT, personalDetailsController.getMyPersonalDetails);
-router.get("/:applicationId", verifyJWT, personalDetailsController.getPersonalDetails);
-router.put("/:applicationId", verifyJWT, personalDetailsController.updatePersonalDetails);
-router.delete("/:applicationId", verifyJWT, personalDetailsController.deletePersonalDetails);
+router.post(
+  "/",
+  defaultPolicyMiddleware.requirePermission("portal", "create"),
+  personalDetailsController.createPersonalDetails
+);
+router.get(
+  "/",
+  defaultPolicyMiddleware.requirePermission("portal", "read"),
+  personalDetailsController.getMyPersonalDetails
+);
+router.get(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "read"),
+  personalDetailsController.getPersonalDetails
+);
+router.put(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "write"),
+  personalDetailsController.updatePersonalDetails
+);
+router.delete(
+  "/:applicationId",
+  defaultPolicyMiddleware.requirePermission("portal", "delete"),
+  personalDetailsController.deletePersonalDetails
+);
 
 module.exports = router;
