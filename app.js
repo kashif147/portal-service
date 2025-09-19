@@ -36,6 +36,17 @@ app.use(
   })
 );
 
+// Health check endpoint (no auth required)
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    service: "portal-service",
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 4000,
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
 // Initialize authentication middleware
 app.use(authenticate);
 

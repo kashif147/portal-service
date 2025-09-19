@@ -6,7 +6,7 @@
 class PolicyClient {
   constructor(baseUrl, options = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
-    this.timeout = options.timeout || 5000;
+    this.timeout = options.timeout || 15000; // Increased to 15 seconds
     this.retries = options.retries || 3;
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 300000; // 5 minutes
