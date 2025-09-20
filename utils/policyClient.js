@@ -10,10 +10,11 @@
 class PolicyClient {
   constructor(baseUrl, options = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
-    this.timeout = options.timeout || 5000;
-    this.retries = options.retries || 3;
+    this.timeout = options.timeout || 10000; // Increased timeout for Azure
+    this.retries = options.retries || 5; // More retries for Azure
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 300000; // 5 minutes
+    this.retryDelay = options.retryDelay || 1000; // Base delay between retries
   }
 
   /**
@@ -53,11 +54,18 @@ class PolicyClient {
 
       return response;
     } catch (error) {
+      console.error(
+        `PolicyClient network error for ${resource}:${action}:`,
+        error.message
+      );
       return {
         success: false,
         decision: "DENY",
         reason: "NETWORK_ERROR",
         error: error.message,
+        resource,
+        action,
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -205,12 +213,14 @@ class PolicyClient {
   }
 
   /**
-   * Make HTTP request with retry logic
+   * Make HTTP request with retry logic and better error handling
    * @private
    */
   async makeRequest(endpoint, options) {
     const url = `${this.baseUrl}${endpoint}`;
     let lastError;
+
+    console.log(`PolicyClient making request to: ${url}`);
 
     for (let i = 0; i < this.retries; i++) {
       try {
@@ -227,22 +237,38 @@ class PolicyClient {
           clearTimeout(timeoutId);
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(
+              `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+            );
           }
 
-          return await response.json();
+          const result = await response.json();
+          console.log(`PolicyClient request successful (attempt ${i + 1})`);
+          return result;
         } else {
           // Fallback for Node.js environments without fetch
           return await this.makeNodeRequest(url, options);
         }
       } catch (error) {
         lastError = error;
+        console.error(
+          `PolicyClient request failed (attempt ${i + 1}/${this.retries}):`,
+          error.message
+        );
+
         if (i < this.retries - 1) {
-          await this.delay(1000 * Math.pow(2, i)); // Exponential backoff
+          const delay = this.retryDelay * Math.pow(2, i); // Exponential backoff
+          console.log(`Retrying in ${delay}ms...`);
+          await this.delay(delay);
         }
       }
     }
 
+    console.error(
+      `PolicyClient request failed after ${this.retries} attempts:`,
+      lastError.message
+    );
     throw lastError;
   }
 
