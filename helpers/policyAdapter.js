@@ -149,9 +149,13 @@ class PolicyAdapter {
         JSON.stringify(result, null, 2)
       );
 
+      // Normalize response format - handle both "authorized" and "success" fields
+      const isAuthorized = result.success || result.authorized || false;
+      const decision = result.decision || (isAuthorized ? "PERMIT" : "DENY");
+
       return {
-        success: result.decision === "PERMIT",
-        decision: result.decision,
+        success: isAuthorized && decision === "PERMIT",
+        decision: decision,
         reason: result.reason,
         user: result.user,
         resource,

@@ -38,21 +38,56 @@ class PolicyClient {
     }
 
     try {
+      console.log(
+        `[POLICY_CLIENT] Making request to user service for ${resource}:${action}`
+      );
+      console.log(
+        `[POLICY_CLIENT] Request body:`,
+        JSON.stringify(
+          { token: token.substring(0, 20) + "...", resource, action, context },
+          null,
+          2
+        )
+      );
+
       const response = await this.makeRequest("/policy/evaluate", {
         method: "POST",
         body: JSON.stringify({ token, resource, action, context }),
         headers: { "Content-Type": "application/json" },
       });
 
+      console.log(
+        `[POLICY_CLIENT] Raw response from user service:`,
+        JSON.stringify(response, null, 2)
+      );
+
+      // Normalize response format - user service returns "authorized" instead of "success"
+      const normalizedResponse = {
+        success: response.authorized || response.success || false,
+        decision: response.decision,
+        reason: response.reason,
+        user: response.user,
+        resource: response.resource,
+        action: response.action,
+        timestamp: response.timestamp,
+        policyVersion: response.policyVersion,
+        ...response, // Include any additional fields
+      };
+
+      console.log(
+        `[POLICY_CLIENT] Normalized response:`,
+        JSON.stringify(normalizedResponse, null, 2)
+      );
+
       // Cache successful results
-      if (response.success) {
+      if (normalizedResponse.success) {
         this.cache.set(cacheKey, {
-          result: response,
+          result: normalizedResponse,
           timestamp: Date.now(),
         });
       }
 
-      return response;
+      return normalizedResponse;
     } catch (error) {
       console.error(
         `PolicyClient network error for ${resource}:${action}:`,

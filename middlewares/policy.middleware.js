@@ -46,6 +46,12 @@ class PolicyMiddleware {
         };
 
         // ALWAYS delegate authorization to user service - maintain single source of truth
+        console.log(
+          `[POLICY_MIDDLEWARE] Delegating authorization to user service for ${resource}:${action}`
+        );
+        console.log(`[POLICY_MIDDLEWARE] Token: ${token.substring(0, 20)}...`);
+        console.log(`[POLICY_MIDDLEWARE] Context:`, context);
+
         const result = await this.policyClient.evaluatePolicy(
           token,
           resource,
@@ -53,15 +59,29 @@ class PolicyMiddleware {
           context
         );
 
+        console.log(
+          `[POLICY_MIDDLEWARE] User service response:`,
+          JSON.stringify(result, null, 2)
+        );
+
         if (result.success && result.decision === "PERMIT") {
           // Attach policy context to request for use in controllers
           req.policyContext = result;
+          console.log(
+            `[POLICY_MIDDLEWARE] ✅ Authorization granted for ${resource}:${action}`
+          );
           next();
         } else {
+          console.log(
+            `[POLICY_MIDDLEWARE] ❌ Authorization denied for ${resource}:${action}`
+          );
+          console.log(
+            `[POLICY_MIDDLEWARE] Reason: ${result.reason || "Unknown"}`
+          );
           return res.status(403).json({
             success: false,
             error: "Insufficient permissions",
-            reason: result.reason,
+            reason: result.reason || "PERMISSION_DENIED",
             code: "PERMISSION_DENIED",
             resource,
             action,
