@@ -102,16 +102,7 @@ exports.getSubscriptionDetails = async (req, res) => {
       return res.fail("Application ID is required");
     }
 
-    // Example of using policyClient for authorization
-    const result = await policyClient.evaluate(
-      req.headers.authorization,
-      "portal",
-      "read",
-      { userId }
-    );
-    if (!result.isAuthorized) {
-      throw new AppError("Unauthorized access", 403);
-    }
+    // Authorization is handled by middleware - no local authorization needed
 
     if (userType === "CRM") {
       const subscriptionDetails =
