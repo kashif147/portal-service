@@ -9,6 +9,11 @@ router.post(
   professionalDetailsController.createProfessionalDetails
 );
 router.get(
+  "/",
+  defaultPolicyMiddleware.requirePermission("portal", "read"),
+  professionalDetailsController.getMyProfessionalDetails
+);
+router.get(
   "/:applicationId",
   defaultPolicyMiddleware.requirePermission("portal", "read"),
   professionalDetailsController.getProfessionalDetails

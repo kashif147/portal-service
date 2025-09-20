@@ -95,23 +95,41 @@ exports.getProfessionalDetails = async (req, res) => {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
+    console.log(`[PROFESSIONAL_DETAILS] Getting professional details for:`, {
+      userId,
+      userType,
+      applicationId,
+    });
+
     if (!applicationId) {
       return res.fail("Application ID is required");
     }
 
     if (userType === "CRM") {
+      console.log(
+        `[PROFESSIONAL_DETAILS] CRM user - getting by applicationId: ${applicationId}`
+      );
       const professionalDetails =
         await professionalDetailsHandler.getApplicationById(applicationId);
+      console.log(
+        `[PROFESSIONAL_DETAILS] CRM result:`,
+        professionalDetails ? "Found" : "Not found"
+      );
       if (!professionalDetails) {
         return res.fail("Professional details not found");
       }
       return res.success(professionalDetails);
     } else {
+      console.log(
+        `[PROFESSIONAL_DETAILS] PORTAL user - getting by applicationId: ${applicationId}`
+      );
+      // For PORTAL users, get by applicationId since they own the application
       const professionalDetails =
-        await professionalDetailsHandler.getByUserIdAndApplicationId(
-          userId,
-          applicationId
-        );
+        await professionalDetailsHandler.getApplicationById(applicationId);
+      console.log(
+        `[PROFESSIONAL_DETAILS] PORTAL result:`,
+        professionalDetails ? "Found" : "Not found"
+      );
       if (!professionalDetails) {
         return res.fail("Professional details not found");
       }
@@ -197,6 +215,40 @@ exports.deleteProfessionalDetails = async (req, res) => {
   } catch (error) {
     console.error(
       "ProfessionalDetailsController [deleteProfessionalDetails] Error:",
+      error
+    );
+    if (error.message === "Professional details not found") {
+      return res.fail(error.message);
+    }
+    return res.serverError(error);
+  }
+};
+
+exports.getMyProfessionalDetails = async (req, res) => {
+  try {
+    const { userId, userType } = extractUserAndCreatorContext(req);
+
+    // Only allow PORTAL users to access this endpoint
+    if (userType !== "PORTAL") {
+      return res.fail("Access denied. Only for PORTAL users.");
+    }
+
+    if (!userId) {
+      return res.fail("User ID is required");
+    }
+
+    const professionalDetails = await professionalDetailsHandler.getByUserId(
+      userId
+    );
+
+    if (!professionalDetails) {
+      return res.fail("Professional details not found for this user");
+    }
+
+    return res.success(professionalDetails);
+  } catch (error) {
+    console.error(
+      "ProfessionalDetailsController [getMyProfessionalDetails] Error:",
       error
     );
     if (error.message === "Professional details not found") {
