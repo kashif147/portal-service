@@ -4,10 +4,9 @@
 name: Build and deploy Node.js app to Azure Web App - testportal
 
 on:
-  # Disabled - using main_portalserviceshell.yml instead
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -50,7 +49,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9C0F4C1367C646DEB06B497DC8CE5F0F }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_81740C1FD2B74EFFBD0CD2D17B2D5B9C }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_51572F1469B44F849BE7CE4CF04823B9 }}
 
       - name: "Deploy to Azure Web App"
         id: deploy-to-webapp
