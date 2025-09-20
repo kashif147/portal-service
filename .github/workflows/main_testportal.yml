@@ -21,7 +21,11 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: "22.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -41,19 +45,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9C0F4C1367C646DEB06B497DC8CE5F0F }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_81740C1FD2B74EFFBD0CD2D17B2D5B9C }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_51572F1469B44F849BE7CE4CF04823B9 }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: "Deploy to Azure Web App"
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'testportal'
-          slot-name: 'Production'
+          app-name: "testportal"
+          slot-name: "Production"
           package: .
-          

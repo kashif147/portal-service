@@ -12,7 +12,7 @@ var http = require("http");
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT);
+var port = normalizePort(process.env.PORT || 4000);
 app.set("port", port);
 
 /**
@@ -25,7 +25,12 @@ var server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port, () => console.log(`Server Running on Port: ${port}`));
+server.listen(port, "0.0.0.0", () => {
+  console.log(`Server Running on Port: ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`MongoDB URI configured: ${!!process.env.MONGO_URI}`);
+  console.log(`User Service URL configured: ${!!process.env.USER_SERVICE_URL}`);
+});
 server.on("error", onError);
 server.on("listening", onListening);
 

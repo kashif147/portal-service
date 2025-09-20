@@ -1,7 +1,5 @@
 var path = require("path");
-require("dotenv").config({
-  path: `.env.${process.env.NODE_ENV || "development"}`,
-});
+require("dotenv").config();
 
 var createError = require("http-errors");
 var express = require("express");
@@ -38,20 +36,6 @@ app.use(
   })
 );
 
-// Health check endpoint (no auth required)
-app.get("/health", (req, res) => {
-  res.json({
-    status: "healthy",
-    service: "portal-service",
-    timestamp: new Date().toISOString(),
-    port: process.env.PORT || 4000,
-    environment: process.env.NODE_ENV || "development",
-  });
-});
-
-// Initialize authentication middleware
-app.use(authenticate);
-
 // Error handling for policy service failures
 app.use((err, req, res, next) => {
   if (err.isPolicyError) {
@@ -65,9 +49,41 @@ app.set("view engine", "ejs");
 
 app.use(express.static("public"));
 
+// Public routes (no auth required)
 app.get("/", (req, res) => {
   res.render("index", { title: "Portal Service" });
 });
+
+// Health check endpoint (no auth required)
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    service: "portal-service",
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 4000,
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
+// API documentation endpoint (no auth required)
+app.get("/api", (req, res) => {
+  res.json({
+    service: "Portal Service API",
+    version: "1.0.0",
+    endpoints: {
+      health: "GET /health",
+      personalDetails: "GET /personal-details (auth required)",
+      professionalDetails: "GET /professional-details (auth required)",
+      subscriptionDetails: "GET /subscription-details (auth required)",
+      applications: "GET /applications (auth required)",
+    },
+    authentication:
+      "Bearer token required for all endpoints except /health and /api",
+  });
+});
+
+// Initialize authentication middleware for protected routes
+app.use(authenticate);
 
 app.use("/", require("./routes/index"));
 
