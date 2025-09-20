@@ -45,6 +45,7 @@ class PolicyMiddleware {
           ...req.body, // Include request body for additional context
         };
 
+        // ALWAYS delegate authorization to user service - maintain single source of truth
         const result = await this.policyClient.evaluatePolicy(
           token,
           resource,
@@ -128,11 +129,12 @@ class PolicyMiddleware {
 
 // Create default policy middleware instance
 const defaultPolicyMiddleware = new PolicyMiddleware(
-  process.env.USER_SERVICE_URL || "http://localhost:3000",
+  process.env.POLICY_SERVICE_URL || "http://localhost:3000",
   {
-    timeout: 5000,
-    retries: 3,
+    timeout: 15000, // Increased timeout for Azure
+    retries: 5, // More retries for Azure
     cacheTimeout: 300000, // 5 minutes
+    retryDelay: 2000, // Base delay between retries
   }
 );
 

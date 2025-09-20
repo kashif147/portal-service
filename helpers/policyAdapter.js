@@ -30,7 +30,7 @@ class PolicyAdapter {
   constructor(options = {}) {
     this.baseURL =
       options.baseURL ||
-      process.env.USER_SERVICE_URL ||
+      process.env.POLICY_SERVICE_URL ||
       "http://localhost:3000";
     this.timeout = options.timeout || 5000;
     this.retries = options.retries || 3;
@@ -76,6 +76,8 @@ class PolicyAdapter {
           ...req.query,
           ...(req.body || {}),
         };
+
+        // ALWAYS delegate authorization to user service - maintain single source of truth
 
         // Evaluate policy
         const result = await this.evaluate(token, {
@@ -123,6 +125,8 @@ class PolicyAdapter {
         context.correlationId = generateCorrelationId();
       }
 
+      // ALWAYS delegate authorization to user service - maintain single source of truth
+
       console.log("Calling PolicyClient.evaluatePolicy with:", {
         resource,
         action,
@@ -130,7 +134,7 @@ class PolicyAdapter {
       });
 
       const policyClient = new PolicyClient(
-        process.env.USER_SERVICE_URL || "http://localhost:3000"
+        process.env.POLICY_SERVICE_URL || "http://localhost:3000"
       );
 
       const result = await policyClient.evaluatePolicy(
@@ -190,7 +194,7 @@ class PolicyAdapter {
       }));
 
       const policyClient = new PolicyClient(
-        process.env.USER_SERVICE_URL || "http://localhost:3000"
+        process.env.POLICY_SERVICE_URL || "http://localhost:3000"
       );
 
       const results = await Promise.all(
@@ -257,7 +261,7 @@ class PolicyAdapter {
   async getPermissions(token, resource) {
     try {
       const policyClient = new PolicyClient(
-        process.env.USER_SERVICE_URL || "http://localhost:3000"
+        process.env.POLICY_SERVICE_URL || "http://localhost:3000"
       );
 
       return await policyClient.getPermissions(token, resource);
@@ -345,7 +349,7 @@ class PolicyAdapter {
 
 // Create default policy adapter instance
 const defaultPolicyAdapter = new PolicyAdapter({
-  baseURL: process.env.USER_SERVICE_URL || "http://localhost:3000",
+  baseURL: process.env.POLICY_SERVICE_URL || "http://localhost:3000",
   timeout: 5000,
   retries: 3,
 });

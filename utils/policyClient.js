@@ -1,15 +1,20 @@
 /**
- * Node Policy Client SDK
- * Lightweight SDK for policy evaluation service communication
+ * Core Policy Client for Centralized RBAC Policy Evaluation
+ * Framework-agnostic implementation that can be used across platforms
+ *
+ * Usage in Node.js/Express microservices:
+ * const PolicyClient = require('./policy-client');
+ * const policy = new PolicyClient('http://user-service:3000');
  */
 
 class PolicyClient {
   constructor(baseUrl, options = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
-    this.timeout = options.timeout || 15000; // Increased to 15 seconds
-    this.retries = options.retries || 3;
+    this.timeout = options.timeout || 10000; // Increased timeout for Azure
+    this.retries = options.retries || 5; // More retries for Azure
     this.cache = new Map();
     this.cacheTimeout = options.cacheTimeout || 300000; // 5 minutes
+    this.retryDelay = options.retryDelay || 1000; // Base delay between retries
   }
 
   /**
@@ -20,7 +25,7 @@ class PolicyClient {
    * @param {Object} context - Additional context
    * @returns {Promise<Object>} Policy decision
    */
-  async evaluatePolicy(token, resource, action, context = {}) {
+  async evaluate(token, resource, action, context = {}) {
     const cacheKey = this.getCacheKey(token, resource, action, context);
 
     // Check cache first
@@ -49,13 +54,119 @@ class PolicyClient {
 
       return response;
     } catch (error) {
+      console.error(
+        `PolicyClient network error for ${resource}:${action}:`,
+        error.message
+      );
       return {
         success: false,
         decision: "DENY",
         reason: "NETWORK_ERROR",
         error: error.message,
+        resource,
+        action,
+        timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  /**
+   * Alias for evaluate method (backward compatibility)
+   */
+  async evaluatePolicy(token, resource, action, context = {}) {
+    return this.evaluate(token, resource, action, context);
+  }
+
+  /**
+   * Evaluate multiple authorization requests
+   * @param {Array} requests - Array of {token, resource, action, context}
+   * @returns {Promise<Array>} Array of policy decisions
+   */
+  async evaluateBatch(requests) {
+    try {
+      const response = await this.makeRequest("/policy/evaluate-batch", {
+        method: "POST",
+        body: JSON.stringify({ requests }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      return response.results || [];
+    } catch (error) {
+      return requests.map(() => ({
+        success: false,
+        decision: "DENY",
+        reason: "NETWORK_ERROR",
+        error: error.message,
+      }));
+    }
+  }
+
+  /**
+   * Quick authorization check
+   * @param {string} token - JWT token
+   * @param {string} resource - Resource name
+   * @param {string} action - Action name
+   * @param {Object} context - Additional context
+   * @returns {Promise<boolean>} Authorization result
+   */
+  async check(token, resource, action, context = {}) {
+    try {
+      const queryParams = new URLSearchParams(context);
+      const response = await this.makeRequest(
+        `/policy/check/${resource}/${action}?${queryParams}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      return response.success;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Middleware for Express.js applications
+   * @param {string} resource - Resource name
+   * @param {string} action - Action name
+   * @returns {Function} Express middleware
+   */
+  middleware(resource, action) {
+    return async (req, res, next) => {
+      try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({
+            success: false,
+            error: "Authorization header required",
+          });
+        }
+
+        const token = authHeader.substring(7);
+
+        // ALWAYS delegate authorization to user service - maintain single source of truth
+        const result = await this.evaluate(token, resource, action, req.query);
+
+        if (result.success) {
+          req.user = result.user;
+          req.tenantId = result.user?.tenantId;
+          next();
+        } else {
+          res.status(403).json({
+            success: false,
+            error: "Access denied",
+            reason: result.reason,
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: "Authorization check failed",
+        });
+      }
+    };
   }
 
   /**
@@ -102,12 +213,14 @@ class PolicyClient {
   }
 
   /**
-   * Make HTTP request with retry logic
+   * Make HTTP request with retry logic and better error handling
    * @private
    */
   async makeRequest(endpoint, options) {
     const url = `${this.baseUrl}${endpoint}`;
     let lastError;
+
+    console.log(`PolicyClient making request to: ${url}`);
 
     for (let i = 0; i < this.retries; i++) {
       try {
@@ -124,22 +237,38 @@ class PolicyClient {
           clearTimeout(timeoutId);
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(
+              `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+            );
           }
 
-          return await response.json();
+          const result = await response.json();
+          console.log(`PolicyClient request successful (attempt ${i + 1})`);
+          return result;
         } else {
           // Fallback for Node.js environments without fetch
           return await this.makeNodeRequest(url, options);
         }
       } catch (error) {
         lastError = error;
+        console.error(
+          `PolicyClient request failed (attempt ${i + 1}/${this.retries}):`,
+          error.message
+        );
+
         if (i < this.retries - 1) {
-          await this.delay(1000 * Math.pow(2, i)); // Exponential backoff
+          const delay = this.retryDelay * Math.pow(2, i); // Exponential backoff
+          console.log(`Retrying in ${delay}ms...`);
+          await this.delay(delay);
         }
       }
     }
 
+    console.error(
+      `PolicyClient request failed after ${this.retries} attempts:`,
+      lastError.message
+    );
     throw lastError;
   }
 
