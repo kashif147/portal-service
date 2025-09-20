@@ -1,4 +1,4 @@
-const personalDetailsHandler = require("../handlers/personal.details.handler");
+const personalDetailsService = require("../services/personal.details.service");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const policyClient = require("../utils/policyClient");
@@ -18,8 +18,10 @@ exports.createPersonalDetails = async (req, res) => {
         email
       );
       if (existingPersonalDetails) {
-        return res.fail(
-          "Personal details already exist, please update existing details"
+        return next(
+          AppError.conflict(
+            "Personal details already exist, please update existing details"
+          )
         );
       }
     } else {
@@ -27,13 +29,15 @@ exports.createPersonalDetails = async (req, res) => {
         userId
       );
       if (existingPersonalDetails) {
-        return res.fail(
-          "Personal details already exist, please update existing details"
+        return next(
+          AppError.conflict(
+            "Personal details already exist, please update existing details"
+          )
         );
       }
     }
 
-    const result = await personalDetailsHandler.create({
+    const result = await personalDetailsService.createPersonalDetails({
       ...validatedData,
       userId,
       meta: { createdBy: creatorId, userType },
@@ -46,9 +50,9 @@ exports.createPersonalDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -58,37 +62,24 @@ exports.getPersonalDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    if (userType === "CRM") {
-      const personalDetails = await personalDetailsHandler.getApplicationById(
-        applicationId
-      );
-      if (!personalDetails) {
-        return res.fail("Personal details not found");
-      }
-      return res.success(personalDetails);
-    } else {
-      const personalDetails =
-        await personalDetailsHandler.getByUserIdAndApplicationId(
-          userId,
-          applicationId
-        );
-      if (!personalDetails) {
-        return res.fail("Personal details not found");
-      }
-      return res.success(personalDetails);
-    }
+    const personalDetails = await personalDetailsService.getPersonalDetails(
+      applicationId,
+      userId,
+      userType
+    );
+    return res.success(personalDetails);
   } catch (error) {
     console.error(
       "PersonalDetailsController [getPersonalDetails] Error:",
       error
     );
     if (error.message === "Personal details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Personal details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -98,7 +89,7 @@ exports.updatePersonalDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
     const validatedData =
@@ -108,19 +99,12 @@ exports.updatePersonalDetails = async (req, res) => {
       meta: { updatedBy: creatorId, userType },
     };
 
-    let result;
-    if (userType === "CRM") {
-      result = await personalDetailsHandler.updateByApplicationId(
-        applicationId,
-        updatePayload
-      );
-    } else {
-      result = await personalDetailsHandler.updateByUserIdAndApplicationId(
-        userId,
-        applicationId,
-        updatePayload
-      );
-    }
+    const result = await personalDetailsService.updatePersonalDetails(
+      applicationId,
+      updatePayload,
+      userId,
+      userType
+    );
 
     return res.success(result);
   } catch (error) {
@@ -129,12 +113,12 @@ exports.updatePersonalDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
     if (error.message === "Personal details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Personal details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -144,17 +128,14 @@ exports.deletePersonalDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    if (userType === "CRM") {
-      await personalDetailsHandler.deleteByApplicationId(applicationId);
-    } else {
-      await personalDetailsHandler.deleteByUserIdAndApplicationId(
-        userId,
-        applicationId
-      );
-    }
+    await personalDetailsService.deletePersonalDetails(
+      applicationId,
+      userId,
+      userType
+    );
 
     return res.success("Personal details deleted successfully");
   } catch (error) {
@@ -163,9 +144,9 @@ exports.deletePersonalDetails = async (req, res) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Personal details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 exports.getMyPersonalDetails = async (req, res) => {
@@ -174,19 +155,21 @@ exports.getMyPersonalDetails = async (req, res) => {
 
     // Only allow PORTAL users to access this endpoint
     if (userType !== "PORTAL") {
-      return res.fail("Access denied. only for PORTAL users.");
+      return next(AppError.forbidden("Access denied. Only for PORTAL users."));
     }
 
     if (!userId) {
-      return res.fail("User ID is required");
+      return next(AppError.badRequest("User ID is required"));
     }
 
-    const personalDetails = await personalDetailsHandler.getByUserIdForPortal(
+    const personalDetails = await personalDetailsService.getMyPersonalDetails(
       userId
     );
 
     if (!personalDetails) {
-      return res.fail("Personal details not found for this user");
+      return next(
+        AppError.notFound("Personal details not found for this user")
+      );
     }
 
     return res.success(personalDetails);
@@ -196,8 +179,8 @@ exports.getMyPersonalDetails = async (req, res) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Personal details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };

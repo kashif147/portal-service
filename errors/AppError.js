@@ -18,6 +18,30 @@ class AppError extends Error {
   static badRequest(message = "Bad request", extras = {}) {
     return new AppError(message, 400, "BAD_REQUEST", extras);
   }
+
+  static forbidden(message = "Access denied", extras = {}) {
+    return new AppError(message, 403, "FORBIDDEN", extras);
+  }
+
+  static unauthorized(message = "Unauthorized", extras = {}) {
+    return new AppError(message, 401, "UNAUTHORIZED", extras);
+  }
+
+  static internalServerError(message = "Internal server error", extras = {}) {
+    return new AppError(message, 500, "INTERNAL_SERVER_ERROR", extras);
+  }
+
+  static serviceUnavailable(message = "Service unavailable", extras = {}) {
+    return new AppError(message, 503, "SERVICE_UNAVAILABLE", extras);
+  }
+
+  static unprocessableEntity(message = "Unprocessable entity", extras = {}) {
+    return new AppError(message, 422, "UNPROCESSABLE_ENTITY", extras);
+  }
+
+  static tooManyRequests(message = "Too many requests", extras = {}) {
+    return new AppError(message, 429, "TOO_MANY_REQUESTS", extras);
+  }
 }
 
 module.exports = { AppError };

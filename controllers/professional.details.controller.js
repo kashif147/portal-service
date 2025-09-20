@@ -1,4 +1,4 @@
-const professionalDetailsHandler = require("../handlers/professional.details.handler");
+const professionalDetailsService = require("../services/professional.details.service");
 const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
@@ -39,43 +39,14 @@ exports.createProfessionalDetails = async (req, res) => {
 
     // Get application ID from URL parameters
     const applicationId = req.params.applicationId;
-    if (!applicationId) {
-      return res.fail("Application ID is required in URL parameters");
-    }
-
-    const personalDetails = await personalDetailsHandler.getApplicationById(
-      applicationId
-    );
-    if (!personalDetails) {
-      return res.fail("Application not found");
-    }
-
-    const existingProfessionalDetails =
-      await professionalDetailsHandler.getByApplicationId(applicationId);
-    if (existingProfessionalDetails) {
-      return res.fail(
-        "Professional details already exist for this Application , please update existing details"
-      );
-    }
-
-    // Validate user permissions
-    if (userType === "CRM") {
-      // CRM users can create professional details for any application
-    } else {
-      if (personalDetails.userId?.toString() !== userId?.toString()) {
-        return res.fail(
-          "Access denied. You can only create professional details for your own applications."
-        );
-      }
-    }
 
     // Create new professional details
-    const result = await professionalDetailsHandler.create({
-      ...validatedData,
-      ApplicationId: applicationId,
-      userId: userId,
-      meta: { createdBy: creatorId, userType: userType },
-    });
+    const result = await professionalDetailsService.createProfessionalDetails(
+      validatedData,
+      applicationId,
+      userId,
+      userType
+    );
 
     return res.success(result);
   } catch (error) {
@@ -84,9 +55,9 @@ exports.createProfessionalDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -102,48 +73,25 @@ exports.getProfessionalDetails = async (req, res) => {
     });
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    if (userType === "CRM") {
-      console.log(
-        `[PROFESSIONAL_DETAILS] CRM user - getting by applicationId: ${applicationId}`
+    const professionalDetails =
+      await professionalDetailsService.getProfessionalDetails(
+        applicationId,
+        userId,
+        userType
       );
-      const professionalDetails =
-        await professionalDetailsHandler.getApplicationById(applicationId);
-      console.log(
-        `[PROFESSIONAL_DETAILS] CRM result:`,
-        professionalDetails ? "Found" : "Not found"
-      );
-      if (!professionalDetails) {
-        return res.fail("Professional details not found");
-      }
-      return res.success(professionalDetails);
-    } else {
-      console.log(
-        `[PROFESSIONAL_DETAILS] PORTAL user - getting by applicationId: ${applicationId}`
-      );
-      // For PORTAL users, get by applicationId since they own the application
-      const professionalDetails =
-        await professionalDetailsHandler.getApplicationById(applicationId);
-      console.log(
-        `[PROFESSIONAL_DETAILS] PORTAL result:`,
-        professionalDetails ? "Found" : "Not found"
-      );
-      if (!professionalDetails) {
-        return res.fail("Professional details not found");
-      }
-      return res.success(professionalDetails);
-    }
+    return res.success(professionalDetails);
   } catch (error) {
     console.error(
       "ProfessionalDetailsController [getProfessionalDetails] Error:",
       error
     );
     if (error.message === "Professional details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Professional details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -153,7 +101,7 @@ exports.updateProfessionalDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
     const validatedData =
@@ -163,19 +111,12 @@ exports.updateProfessionalDetails = async (req, res) => {
       meta: { updatedBy: creatorId, userType },
     };
 
-    let result;
-    if (userType === "CRM") {
-      result = await professionalDetailsHandler.updateByApplicationId(
-        applicationId,
-        updatePayload
-      );
-    } else {
-      result = await professionalDetailsHandler.updateByUserIdAndApplicationId(
-        userId,
-        applicationId,
-        updatePayload
-      );
-    }
+    const result = await professionalDetailsService.updateProfessionalDetails(
+      applicationId,
+      updatePayload,
+      userId,
+      userType
+    );
 
     return res.success(result);
   } catch (error) {
@@ -184,12 +125,12 @@ exports.updateProfessionalDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
     if (error.message === "Professional details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Professional details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -199,17 +140,14 @@ exports.deleteProfessionalDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    if (userType === "CRM") {
-      await professionalDetailsHandler.deleteByApplicationId(applicationId);
-    } else {
-      await professionalDetailsHandler.deleteByUserIdAndApplicationId(
-        userId,
-        applicationId
-      );
-    }
+    await professionalDetailsService.deleteProfessionalDetails(
+      applicationId,
+      userId,
+      userType
+    );
 
     return res.success("Professional details deleted successfully");
   } catch (error) {
@@ -218,9 +156,9 @@ exports.deleteProfessionalDetails = async (req, res) => {
       error
     );
     if (error.message === "Professional details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Professional details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -230,19 +168,20 @@ exports.getMyProfessionalDetails = async (req, res) => {
 
     // Only allow PORTAL users to access this endpoint
     if (userType !== "PORTAL") {
-      return res.fail("Access denied. Only for PORTAL users.");
+      return next(AppError.forbidden("Access denied. Only for PORTAL users."));
     }
 
     if (!userId) {
-      return res.fail("User ID is required");
+      return next(AppError.badRequest("User ID is required"));
     }
 
-    const professionalDetails = await professionalDetailsHandler.getByUserId(
-      userId
-    );
+    const professionalDetails =
+      await professionalDetailsService.getMyProfessionalDetails(userId);
 
     if (!professionalDetails) {
-      return res.fail("Professional details not found for this user");
+      return next(
+        AppError.notFound("Professional details not found for this user")
+      );
     }
 
     return res.success(professionalDetails);
@@ -252,8 +191,8 @@ exports.getMyProfessionalDetails = async (req, res) => {
       error
     );
     if (error.message === "Professional details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Professional details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };

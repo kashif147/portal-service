@@ -1,4 +1,4 @@
-const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
+const subscriptionDetailsService = require("../services/subscription.details.service");
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const joischemas = require("../validation/index.js");
@@ -35,49 +35,13 @@ exports.createSubscriptionDetails = async (req, res) => {
 
     // Get application ID from URL parameters
     const applicationId = req.params.applicationId;
-    if (!applicationId) {
-      return res.fail("Application ID is required in URL parameters");
-    }
-
-    const personalDetails = await personalDetailsHandler.getApplicationById(
-      applicationId
-    );
-    if (!personalDetails) {
-      return res.fail("Application not found");
-    }
-
-    const existingSubscriptionDetails =
-      await subscriptionDetailsHandler.getByApplicationId(applicationId);
-    if (existingSubscriptionDetails) {
-      return res.fail(
-        "Subscription details already exist for this Application ID, please update existing details"
-      );
-    }
-
-    // Validate user permissions
-    if (userType === "CRM") {
-      // CRM users can create for any application - no user ID check needed
-    } else {
-      // PORTAL users can only create for their own applications
-      if (personalDetails.userId?.toString() !== userId?.toString()) {
-        return res.fail(
-          "Access denied. You can only create subscription details for your own applications."
-        );
-      }
-    }
 
     // Create new subscription details
-    const result = await subscriptionDetailsHandler.create({
-      ...validatedData,
-      ApplicationId: applicationId,
-      userId: userId,
-      meta: { createdBy: creatorId, userType },
-    });
-
-    // Update application status to submitted (complete application)
-    await personalDetailsHandler.updateApplicationStatus(
+    const result = await subscriptionDetailsService.createSubscriptionDetails(
+      validatedData,
       applicationId,
-      APPLICATION_STATUS.SUBMITTED
+      userId,
+      userType
     );
 
     return res.success(result);
@@ -87,9 +51,9 @@ exports.createSubscriptionDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -99,38 +63,25 @@ exports.getSubscriptionDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    // Authorization is handled by middleware - no local authorization needed
-
-    if (userType === "CRM") {
-      const subscriptionDetails =
-        await subscriptionDetailsHandler.getApplicationById(applicationId);
-      if (!subscriptionDetails) {
-        return res.fail("Subscription details not found");
-      }
-      return res.success(subscriptionDetails);
-    } else {
-      const subscriptionDetails =
-        await subscriptionDetailsHandler.getByUserIdAndApplicationId(
-          userId,
-          applicationId
-        );
-      if (!subscriptionDetails) {
-        return res.fail("Subscription details not found");
-      }
-      return res.success(subscriptionDetails);
-    }
+    const subscriptionDetails =
+      await subscriptionDetailsService.getSubscriptionDetails(
+        applicationId,
+        userId,
+        userType
+      );
+    return res.success(subscriptionDetails);
   } catch (error) {
     console.error(
       "SubscriptionDetailsController [getSubscriptionDetails] Error:",
       error
     );
     if (error.message === "Subscription details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Subscription details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -140,7 +91,7 @@ exports.updateSubscriptionDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
     const validatedData =
@@ -150,19 +101,12 @@ exports.updateSubscriptionDetails = async (req, res) => {
       meta: { updatedBy: creatorId, userType },
     };
 
-    let result;
-    if (userType === "CRM") {
-      result = await subscriptionDetailsHandler.updateByApplicationId(
-        applicationId,
-        updatePayload
-      );
-    } else {
-      result = await subscriptionDetailsHandler.updateByUserIdAndApplicationId(
-        userId,
-        applicationId,
-        updatePayload
-      );
-    }
+    const result = await subscriptionDetailsService.updateSubscriptionDetails(
+      applicationId,
+      updatePayload,
+      userId,
+      userType
+    );
 
     return res.success(result);
   } catch (error) {
@@ -171,12 +115,12 @@ exports.updateSubscriptionDetails = async (req, res) => {
       error
     );
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
     if (error.message === "Subscription details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Subscription details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -186,17 +130,14 @@ exports.deleteSubscriptionDetails = async (req, res) => {
     const applicationId = req.params.applicationId;
 
     if (!applicationId) {
-      return res.fail("Application ID is required");
+      return next(AppError.badRequest("Application ID is required"));
     }
 
-    if (userType === "CRM") {
-      await subscriptionDetailsHandler.deleteByApplicationId(applicationId);
-    } else {
-      await subscriptionDetailsHandler.deleteByUserIdAndApplicationId(
-        userId,
-        applicationId
-      );
-    }
+    await subscriptionDetailsService.deleteSubscriptionDetails(
+      applicationId,
+      userId,
+      userType
+    );
 
     return res.success("Subscription details deleted successfully");
   } catch (error) {
@@ -205,8 +146,8 @@ exports.deleteSubscriptionDetails = async (req, res) => {
       error
     );
     if (error.message === "Subscription details not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Subscription details not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };

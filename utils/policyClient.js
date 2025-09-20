@@ -7,6 +7,8 @@
  * const policy = new PolicyClient('http://user-service:3000');
  */
 
+const { AppError } = require("../errors/AppError");
+
 class PolicyClient {
   constructor(baseUrl, options = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
@@ -273,7 +275,7 @@ class PolicyClient {
 
           if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(
+            throw AppError.internalServerError(
               `HTTP ${response.status}: ${response.statusText} - ${errorText}`
             );
           }
@@ -340,10 +342,14 @@ class PolicyClient {
             if (res.statusCode >= 200 && res.statusCode < 300) {
               resolve(JSON.parse(data));
             } else {
-              reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+              reject(
+                AppError.serviceUnavailable(
+                  `HTTP ${res.statusCode}: ${res.statusMessage}`
+                )
+              );
             }
           } catch (error) {
-            reject(new Error("Invalid JSON response"));
+            reject(AppError.internalServerError("Invalid JSON response"));
           }
         });
       });
@@ -351,7 +357,7 @@ class PolicyClient {
       req.on("error", reject);
       req.on("timeout", () => {
         req.destroy();
-        reject(new Error("Request timeout"));
+        reject(AppError.serviceUnavailable("Request timeout"));
       });
 
       if (options.body) {

@@ -91,10 +91,7 @@ app.use(function (req, res, next) {
   next(createError(404));
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.message || "Page Not Found");
-  res.fail("Page Not Found");
-});
+app.use(responseMiddleware.errorHandler);
 
 process.on("SIGINT", async () => {
   process.exit(0);

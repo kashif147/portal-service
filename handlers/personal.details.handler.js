@@ -83,7 +83,10 @@ exports.getByEmail = (email) =>
   new Promise(async (resolve, reject) => {
     try {
       const result = await PersonalDetails.findOne({
-        $or: [{ "contactInfo.personalEmail": email }, { "contactInfo.workEmail": email }],
+        $or: [
+          { "contactInfo.personalEmail": email },
+          { "contactInfo.workEmail": email },
+        ],
       });
       resolve(result);
     } catch (error) {
@@ -95,10 +98,15 @@ exports.getByEmail = (email) =>
 exports.getApplicationById = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const result = await PersonalDetails.findOne({ ApplicationId: applicationId });
+      const result = await PersonalDetails.findOne({
+        ApplicationId: applicationId,
+      });
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [getApplicationById] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [getApplicationById] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -112,7 +120,10 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
       });
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [getByUserIdAndApplicationId] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [getByUserIdAndApplicationId] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -120,14 +131,21 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
 exports.updateByApplicationId = (applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndUpdate({ ApplicationId: applicationId }, updateData, {
-        new: true,
-        runValidators: true,
-      });
+      const record = await PersonalDetails.findOneAndUpdate(
+        { ApplicationId: applicationId },
+        updateData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [updateByApplicationId] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [updateByApplicationId] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -135,14 +153,21 @@ exports.updateByApplicationId = (applicationId, updateData) =>
 exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndUpdate({ userId: userId, ApplicationId: applicationId }, updateData, {
-        new: true,
-        runValidators: true,
-      });
+      const record = await PersonalDetails.findOneAndUpdate(
+        { userId: userId, ApplicationId: applicationId },
+        updateData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [updateByUserIdAndApplicationId] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [updateByUserIdAndApplicationId] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -150,11 +175,16 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
 exports.deleteByApplicationId = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndDelete({ ApplicationId: applicationId });
+      const record = await PersonalDetails.findOneAndDelete({
+        ApplicationId: applicationId,
+      });
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [deleteByApplicationId] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [deleteByApplicationId] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -162,11 +192,17 @@ exports.deleteByApplicationId = (applicationId) =>
 exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await PersonalDetails.findOneAndDelete({ userId: userId, ApplicationId: applicationId });
+      const record = await PersonalDetails.findOneAndDelete({
+        userId: userId,
+        ApplicationId: applicationId,
+      });
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [deleteByUserIdAndApplicationId] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [deleteByUserIdAndApplicationId] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -174,10 +210,17 @@ exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
 exports.updateApplicationStatus = (applicationId, status) =>
   new Promise(async (resolve, reject) => {
     try {
-      const result = await PersonalDetails.findOneAndUpdate({ ApplicationId: applicationId }, { applicationStatus: status }, { new: true });
+      const result = await PersonalDetails.findOneAndUpdate(
+        { ApplicationId: applicationId },
+        { applicationStatus: status },
+        { new: true }
+      );
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [updateApplicationStatus] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [updateApplicationStatus] Error:",
+        error
+      );
       reject(error);
     }
   });
@@ -191,7 +234,10 @@ exports.getByUserIdForPortal = (userId) =>
       });
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [getByUserIdForPortal] Error:", error);
+      console.error(
+        "PersonalDetailsHandler [getByUserIdForPortal] Error:",
+        error
+      );
       reject(error);
     }
   });

@@ -1,4 +1,4 @@
-const applicationHandler = require("../handlers/application.handler");
+const applicationService = require("../services/application.service");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const policyClient = require("../utils/policyClient");
@@ -9,7 +9,11 @@ exports.getAllApplications = async (req, res) => {
   try {
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
-      return res.fail("Access denied. Only CRM user can view applications.");
+      return next(
+        AppError.forbidden(
+          "Access denied. Only CRM user can view applications."
+        )
+      );
     }
 
     const validatedQuery =
@@ -25,7 +29,7 @@ exports.getAllApplications = async (req, res) => {
     }
 
     const applicationsWithDetails =
-      await applicationHandler.getAllApplicationsWithDetails(statusFilters);
+      await applicationService.getAllApplicationsWithDetails(statusFilters);
 
     return res.success({
       filter: validatedQuery.type || "all",
@@ -35,9 +39,9 @@ exports.getAllApplications = async (req, res) => {
   } catch (error) {
     console.error("ApplicationController [getAllApplications] Error:", error);
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -45,19 +49,23 @@ exports.getApplicationById = async (req, res) => {
   try {
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
-      return res.fail("Access denied. Only CRM users can view applications.");
+      return next(
+        AppError.forbidden(
+          "Access denied. Only CRM users can view applications."
+        )
+      );
     }
     const { applicationId } = req.params;
 
     const applicationDetails =
-      await applicationHandler.getApplicationWithDetails(applicationId);
+      await applicationService.getApplicationWithDetails(applicationId);
     return res.success(applicationDetails);
   } catch (error) {
     console.error("ApplicationController [getApplicationById] Error:", error);
     if (error.message === "Application not found") {
-      return res.fail(error.message);
+      return next(AppError.notFound("Application not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
 
@@ -66,8 +74,10 @@ exports.approveApplication = async (req, res) => {
     // Check if user is CRM
     const { userType, creatorId } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
-      return res.fail(
-        "Access denied. Only CRM users can approve applications."
+      return next(
+        AppError.forbidden(
+          "Access denied. Only CRM users can approve applications."
+        )
       );
     }
 
@@ -79,8 +89,8 @@ exports.approveApplication = async (req, res) => {
     );
     const { comments, applicationStatus } = validatedData;
 
-    // Use the new application handler
-    const updatedApplication = await applicationHandler.updateApplicationStatus(
+    // Use the application service
+    const updatedApplication = await applicationService.updateApplicationStatus(
       applicationId,
       applicationStatus,
       creatorId,
@@ -115,14 +125,14 @@ exports.approveApplication = async (req, res) => {
   } catch (error) {
     console.error("ApplicationController [approveApplication] Error:", error);
     if (error.isJoi) {
-      return res.fail("Validation error: " + error.message);
+      return next(AppError.badRequest("Validation error: " + error.message));
     }
     if (error.message.includes("Invalid status")) {
-      return res.fail(error.message);
+      return next(AppError.badRequest(error.message));
     }
     if (error.message.includes("Application not found")) {
-      return res.fail(error.message);
+      return next(AppError.notFound("Application not found"));
     }
-    return res.serverError(error);
+    return next(error);
   }
 };
