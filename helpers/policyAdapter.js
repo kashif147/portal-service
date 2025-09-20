@@ -89,8 +89,16 @@ class PolicyAdapter {
         if (result.success && result.decision === "PERMIT") {
           // Attach policy context to request for use in controllers
           req.policyContext = result;
-          req.user = result.user;
-          req.tenantId = result.user?.tenantId;
+
+          // Set req.user for backward compatibility with existing controllers
+          if (result.user) {
+            req.user = result.user;
+            req.userId = result.user.id;
+            req.tenantId = result.user.tenantId;
+            req.roles = result.user.roles || [];
+            req.permissions = result.user.permissions || [];
+          }
+
           next();
         } else {
           return this.sendForbiddenResponse(res, result, correlationId);

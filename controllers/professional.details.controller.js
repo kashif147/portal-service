@@ -33,7 +33,7 @@ const { AppError } = require("../errors/AppError");
 
 exports.createProfessionalDetails = async (req, res) => {
   try {
-    const { userId, tenantId, roles, permissions } = req.ctx;
+    const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const validatedData =
       await joischemas.professional_details_create.validateAsync(req.body);
 
@@ -59,7 +59,8 @@ exports.createProfessionalDetails = async (req, res) => {
     }
 
     // Validate user permissions
-    if (roles.includes("CRM")) {
+    if (userType === "CRM") {
+      // CRM users can create professional details for any application
     } else {
       if (personalDetails.userId?.toString() !== userId?.toString()) {
         return res.fail(
@@ -73,7 +74,7 @@ exports.createProfessionalDetails = async (req, res) => {
       ...validatedData,
       ApplicationId: applicationId,
       userId: userId,
-      meta: { createdBy: userId, userType: roles[0] },
+      meta: { createdBy: creatorId, userType: userType },
     });
 
     return res.success(result);
