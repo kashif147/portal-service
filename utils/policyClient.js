@@ -1,6 +1,10 @@
 /**
- * Node Policy Client SDK
- * Lightweight SDK for policy evaluation service communication
+ * Core Policy Client for Centralized RBAC Policy Evaluation
+ * Framework-agnostic implementation that can be used across platforms
+ *
+ * Usage in Node.js/Express microservices:
+ * const PolicyClient = require('./policy-client');
+ * const policy = new PolicyClient('http://user-service:3000');
  */
 
 class PolicyClient {
@@ -20,7 +24,7 @@ class PolicyClient {
    * @param {Object} context - Additional context
    * @returns {Promise<Object>} Policy decision
    */
-  async evaluatePolicy(token, resource, action, context = {}) {
+  async evaluate(token, resource, action, context = {}) {
     const cacheKey = this.getCacheKey(token, resource, action, context);
 
     // Check cache first
@@ -56,6 +60,105 @@ class PolicyClient {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Alias for evaluate method (backward compatibility)
+   */
+  async evaluatePolicy(token, resource, action, context = {}) {
+    return this.evaluate(token, resource, action, context);
+  }
+
+  /**
+   * Evaluate multiple authorization requests
+   * @param {Array} requests - Array of {token, resource, action, context}
+   * @returns {Promise<Array>} Array of policy decisions
+   */
+  async evaluateBatch(requests) {
+    try {
+      const response = await this.makeRequest("/policy/evaluate-batch", {
+        method: "POST",
+        body: JSON.stringify({ requests }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      return response.results || [];
+    } catch (error) {
+      return requests.map(() => ({
+        success: false,
+        decision: "DENY",
+        reason: "NETWORK_ERROR",
+        error: error.message,
+      }));
+    }
+  }
+
+  /**
+   * Quick authorization check
+   * @param {string} token - JWT token
+   * @param {string} resource - Resource name
+   * @param {string} action - Action name
+   * @param {Object} context - Additional context
+   * @returns {Promise<boolean>} Authorization result
+   */
+  async check(token, resource, action, context = {}) {
+    try {
+      const queryParams = new URLSearchParams(context);
+      const response = await this.makeRequest(
+        `/policy/check/${resource}/${action}?${queryParams}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      return response.success;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Middleware for Express.js applications
+   * @param {string} resource - Resource name
+   * @param {string} action - Action name
+   * @returns {Function} Express middleware
+   */
+  middleware(resource, action) {
+    return async (req, res, next) => {
+      try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({
+            success: false,
+            error: "Authorization header required",
+          });
+        }
+
+        const token = authHeader.substring(7);
+
+        // ALWAYS delegate authorization to user service - maintain single source of truth
+        const result = await this.evaluate(token, resource, action, req.query);
+
+        if (result.success) {
+          req.user = result.user;
+          req.tenantId = result.user?.tenantId;
+          next();
+        } else {
+          res.status(403).json({
+            success: false,
+            error: "Access denied",
+            reason: result.reason,
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: "Authorization check failed",
+        });
+      }
+    };
   }
 
   /**
