@@ -5,7 +5,7 @@ const policyClient = require("../utils/policyClient");
 const { AppError } = require("../errors/AppError");
 // const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
 
-exports.getAllApplications = async (req, res) => {
+exports.getAllApplications = async (req, res, next) => {
   try {
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
@@ -45,7 +45,7 @@ exports.getAllApplications = async (req, res) => {
   }
 };
 
-exports.getApplicationById = async (req, res) => {
+exports.getApplicationById = async (req, res, next) => {
   try {
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
@@ -69,7 +69,7 @@ exports.getApplicationById = async (req, res) => {
   }
 };
 
-exports.approveApplication = async (req, res) => {
+exports.approveApplication = async (req, res, next) => {
   try {
     // Check if user is CRM
     const { userType, creatorId } = extractUserAndCreatorContext(req);

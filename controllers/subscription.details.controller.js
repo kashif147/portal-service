@@ -27,7 +27,7 @@ const { AppError } = require("../errors/AppError");
 //   }
 // };
 
-exports.createSubscriptionDetails = async (req, res) => {
+exports.createSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
     const validatedData =
@@ -57,7 +57,7 @@ exports.createSubscriptionDetails = async (req, res) => {
   }
 };
 
-exports.getSubscriptionDetails = async (req, res) => {
+exports.getSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -85,7 +85,7 @@ exports.getSubscriptionDetails = async (req, res) => {
   }
 };
 
-exports.updateSubscriptionDetails = async (req, res) => {
+exports.updateSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -124,7 +124,7 @@ exports.updateSubscriptionDetails = async (req, res) => {
   }
 };
 
-exports.deleteSubscriptionDetails = async (req, res) => {
+exports.deleteSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;

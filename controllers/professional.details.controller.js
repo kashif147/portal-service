@@ -31,7 +31,7 @@ const { AppError } = require("../errors/AppError");
 //   }
 // };
 
-exports.createProfessionalDetails = async (req, res) => {
+exports.createProfessionalDetails = async (req, res, next) => {
   try {
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const validatedData =
@@ -61,7 +61,7 @@ exports.createProfessionalDetails = async (req, res) => {
   }
 };
 
-exports.getProfessionalDetails = async (req, res) => {
+exports.getProfessionalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -95,7 +95,7 @@ exports.getProfessionalDetails = async (req, res) => {
   }
 };
 
-exports.updateProfessionalDetails = async (req, res) => {
+exports.updateProfessionalDetails = async (req, res, next) => {
   try {
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -134,7 +134,7 @@ exports.updateProfessionalDetails = async (req, res) => {
   }
 };
 
-exports.deleteProfessionalDetails = async (req, res) => {
+exports.deleteProfessionalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -162,7 +162,7 @@ exports.deleteProfessionalDetails = async (req, res) => {
   }
 };
 
-exports.getMyProfessionalDetails = async (req, res) => {
+exports.getMyProfessionalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
 

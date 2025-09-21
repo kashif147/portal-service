@@ -4,7 +4,7 @@ const joischemas = require("../validation/index.js");
 const policyClient = require("../utils/policyClient");
 const { AppError } = require("../errors/AppError");
 
-exports.createPersonalDetails = async (req, res) => {
+exports.createPersonalDetails = async (req, res, next) => {
   try {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
 
@@ -56,7 +56,7 @@ exports.createPersonalDetails = async (req, res) => {
   }
 };
 
-exports.getPersonalDetails = async (req, res) => {
+exports.getPersonalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -83,7 +83,7 @@ exports.getPersonalDetails = async (req, res) => {
   }
 };
 
-exports.updatePersonalDetails = async (req, res) => {
+exports.updatePersonalDetails = async (req, res, next) => {
   try {
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -122,7 +122,7 @@ exports.updatePersonalDetails = async (req, res) => {
   }
 };
 
-exports.deletePersonalDetails = async (req, res) => {
+exports.deletePersonalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
@@ -149,7 +149,7 @@ exports.deletePersonalDetails = async (req, res) => {
     return next(error);
   }
 };
-exports.getMyPersonalDetails = async (req, res) => {
+exports.getMyPersonalDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);
 
