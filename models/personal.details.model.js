@@ -23,14 +23,14 @@ const ProfileSchema = new mongoose.Schema(
     personalInfo: {
       title: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "lookup'",
+        ref: "lookup",
         required: true,
       },
       surname: { type: String, allowNull: true },
       forename: { type: String, allowNull: true },
       gender: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "lookup'",
+        ref: "lookup",
         required: true,
       },
       dateOfBirth: { type: Date, allowNull: true },

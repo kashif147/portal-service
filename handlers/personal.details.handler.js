@@ -71,7 +71,25 @@ exports.create = (data) =>
 exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const result = await PersonalDetails.findOne({ userId });
+      const result = await PersonalDetails.findOne({ userId })
+        .populate({
+          path: "personalInfo.title",
+          match: { "lookuptypeId.code": "001" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.gender",
+          match: { "lookuptypeId.code": "002" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.countryPrimaryQualification",
+          select: "name code",
+        })
+        .populate({
+          path: "contactInfo.country",
+          select: "name code",
+        });
       resolve(result);
     } catch (error) {
       console.error("PersonalDetailsHandler [getByUserId] Error:", error);
@@ -87,7 +105,25 @@ exports.getByEmail = (email) =>
           { "contactInfo.personalEmail": email },
           { "contactInfo.workEmail": email },
         ],
-      });
+      })
+        .populate({
+          path: "personalInfo.title",
+          match: { "lookuptypeId.code": "001" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.gender",
+          match: { "lookuptypeId.code": "002" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.countryPrimaryQualification",
+          select: "name code",
+        })
+        .populate({
+          path: "contactInfo.country",
+          select: "name code",
+        });
       resolve(result);
     } catch (error) {
       console.error("PersonalDetailsHandler [getByEmail] Error:", error);
@@ -100,7 +136,25 @@ exports.getApplicationById = (applicationId) =>
     try {
       const result = await PersonalDetails.findOne({
         ApplicationId: applicationId,
-      });
+      })
+        .populate({
+          path: "personalInfo.title",
+          match: { "lookuptypeId.code": "001" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.gender",
+          match: { "lookuptypeId.code": "002" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.countryPrimaryQualification",
+          select: "name code",
+        })
+        .populate({
+          path: "contactInfo.country",
+          select: "name code",
+        });
       resolve(result);
     } catch (error) {
       console.error(
@@ -117,7 +171,25 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
       const result = await PersonalDetails.findOne({
         userId: userId,
         ApplicationId: applicationId,
-      });
+      })
+        .populate({
+          path: "personalInfo.title",
+          match: { "lookuptypeId.code": "001" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.gender",
+          match: { "lookuptypeId.code": "002" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.countryPrimaryQualification",
+          select: "name code",
+        })
+        .populate({
+          path: "contactInfo.country",
+          select: "name code",
+        });
       resolve(result);
     } catch (error) {
       console.error(
@@ -231,7 +303,25 @@ exports.getByUserIdForPortal = (userId) =>
       const result = await PersonalDetails.findOne({
         userId: userId,
         "meta.userType": "PORTAL",
-      });
+      })
+        .populate({
+          path: "personalInfo.title",
+          match: { "lookuptypeId.code": "001" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.gender",
+          match: { "lookuptypeId.code": "002" },
+          select: "name code",
+        })
+        .populate({
+          path: "personalInfo.countryPrimaryQualification",
+          select: "name code",
+        })
+        .populate({
+          path: "contactInfo.country",
+          select: "name code",
+        });
       resolve(result);
     } catch (error) {
       console.error(
