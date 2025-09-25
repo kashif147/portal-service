@@ -21,33 +21,52 @@ const getCorsConfig = () => {
       "http://127.0.0.1:3001",
     ],
     staging: [
-      //   "http://localhost:3000",
-      "https://staging-frontend.yourdomain.com",
+      "http://localhost:3000",
+      "https://testportal-dabravg2h3hfbke9.canadacentral-01.azurewebsites.net",
+      "https://userserviceshell-aqf6f0b8fqgmagch.canadacentral-01.azurewebsites.net",
+      "https://projectshellapi-c0hqhbdwaaahbcab.northeurope-01.azurewebsites.net",
       "https://staging-admin.yourdomain.com",
       "https://staging-mobile.yourdomain.com",
     ],
     production: [
-      "https://app.yourdomain.com",
-      "https://admin.yourdomain.com",
-      "https://mobile.yourdomain.com",
+      // Add your actual production domains here
+      // "https://app.yourdomain.com",
+      // "https://admin.yourdomain.com",
+      // "https://mobile.yourdomain.com",
     ],
   };
 
   // Add portal-service URL to allowed origins
   const portalServiceUrl = process.env.PORTAL_SERVICE_URL;
-  if (portalServiceUrl) {
-    baseOrigins.development.push(portalServiceUrl);
-    baseOrigins.staging.push(portalServiceUrl);
-    baseOrigins.production.push(portalServiceUrl);
+  if (
+    portalServiceUrl &&
+    !baseOrigins[environment].includes(portalServiceUrl)
+  ) {
+    baseOrigins[environment].push(portalServiceUrl);
   }
 
   // Get additional origins from environment variables
   const additionalOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
 
+  // Validate additional origins (basic URL validation)
+  const validAdditionalOrigins = additionalOrigins.filter((origin) => {
+    const trimmed = origin.trim();
+    if (!trimmed) return false;
+
+    // Basic URL validation
+    try {
+      const url = new URL(trimmed);
+      return ["http:", "https:"].includes(url.protocol);
+    } catch {
+      console.warn(`Invalid origin in ALLOWED_ORIGINS: ${trimmed}`);
+      return false;
+    }
+  });
+
   // Combine base origins with additional ones
   const allowedOrigins = [
     ...(baseOrigins[environment] || baseOrigins.development),
-    ...additionalOrigins.filter((origin) => origin.trim()),
+    ...validAdditionalOrigins,
   ];
 
   // Remove duplicates
@@ -122,6 +141,55 @@ const handlePreflight = (req, res, next) => {
 // CORS error handler
 const corsErrorHandler = (err, req, res, next) => {
   if (err.message && err.message.includes("Not allowed by CORS")) {
+    const corsConfig = getCorsConfig();
+    const environment = process.env.NODE_ENV || "development";
+
+    // Get the actual allowed origins for this environment
+    const baseOrigins = {
+      development: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+      ],
+      staging: [
+        "http://localhost:3000",
+        "https://testportal-dabravg2h3hfbke9.canadacentral-01.azurewebsites.net",
+        "https://userserviceshell-aqf6f0b8fqgmagch.canadacentral-01.azurewebsites.net",
+        "https://projectshellapi-c0hqhbdwaaahbcab.northeurope-01.azurewebsites.net",
+        "https://staging-admin.yourdomain.com",
+        "https://staging-mobile.yourdomain.com",
+      ],
+      production: [
+        "https://app.yourdomain.com",
+        "https://admin.yourdomain.com",
+        "https://mobile.yourdomain.com",
+      ],
+    };
+
+    const additionalOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
+
+    // Validate additional origins (same logic as main function)
+    const validAdditionalOrigins = additionalOrigins.filter((origin) => {
+      const trimmed = origin.trim();
+      if (!trimmed) return false;
+
+      try {
+        const url = new URL(trimmed);
+        return ["http:", "https:"].includes(url.protocol);
+      } catch {
+        return false;
+      }
+    });
+
+    const allowedOrigins = [
+      ...(baseOrigins[environment] || baseOrigins.development),
+      ...validAdditionalOrigins,
+    ];
+
     return res.status(403).json({
       error: {
         message: "CORS policy violation",
@@ -133,7 +201,7 @@ const corsErrorHandler = (err, req, res, next) => {
             : "Cross-origin request blocked",
         allowedOrigins:
           process.env.NODE_ENV === "development"
-            ? process.env.ALLOWED_ORIGINS?.split(",") || []
+            ? [...new Set(allowedOrigins)]
             : undefined,
       },
     });

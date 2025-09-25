@@ -5,8 +5,12 @@
   "main": "app.js",
   "scripts": {
     "start": "node ./bin/portal-service.js",
+    "dev": "NODE_ENV=development node ./bin/portal-service.js",
+    "staging": "NODE_ENV=staging node ./bin/portal-service.js",
     "start:dev": "NODE_ENV=development node ./bin/portal-service.js",
-    "start:staging": "NODE_ENV=staging node ./bin/portal-service.js"
+    "start:staging": "NODE_ENV=staging node ./bin/portal-service.js",
+    "dev:watch": "NODE_ENV=development nodemon ./bin/portal-service.js",
+    "staging:watch": "NODE_ENV=staging nodemon ./bin/portal-service.js"
   },
   "repository": {
     "type": "git",

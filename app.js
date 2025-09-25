@@ -1,9 +1,11 @@
 var path = require("path");
-require("dotenv").config();
+const envFile =
+  process.env.NODE_ENV === "staging" ? ".env.staging" : ".env.development";
+require("dotenv").config({ path: envFile });
 
 var createError = require("http-errors");
 var express = require("express");
-const cors = require("cors");
+const { corsMiddleware, corsErrorHandler } = require("./config/cors");
 
 const { mongooseConnection } = require("./config/db");
 const session = require("express-session");
@@ -26,7 +28,7 @@ app.use(express.json({ limit: "200mb" }));
 
 app.use(loggerMiddleware);
 
-app.use(cors());
+app.use(corsMiddleware);
 
 app.use(
   session({
@@ -91,6 +93,7 @@ app.use(function (req, res, next) {
   next(createError(404));
 });
 
+app.use(corsErrorHandler);
 app.use(responseMiddleware.errorHandler);
 
 process.on("SIGINT", async () => {
