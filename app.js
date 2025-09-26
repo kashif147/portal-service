@@ -74,10 +74,10 @@ app.get("/api", (req, res) => {
     version: "1.0.0",
     endpoints: {
       health: "GET /health",
-      personalDetails: "GET /personal-details (auth required)",
-      professionalDetails: "GET /professional-details (auth required)",
-      subscriptionDetails: "GET /subscription-details (auth required)",
-      applications: "GET /applications (auth required)",
+      personalDetails: "GET /api/personal-details (auth required)",
+      professionalDetails: "GET /api/professional-details (auth required)",
+      subscriptionDetails: "GET /api/subscription-details (auth required)",
+      applications: "GET /api/applications (auth required)",
     },
     authentication:
       "Bearer token required for all endpoints except /health and /api",
@@ -87,7 +87,7 @@ app.get("/api", (req, res) => {
 // Initialize authentication middleware for protected routes
 app.use(authenticate);
 
-app.use("/", require("./routes/index"));
+app.use("/api", require("./routes/index"));
 
 app.use(function (req, res, next) {
   next(createError(404));
