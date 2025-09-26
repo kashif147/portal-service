@@ -22,23 +22,20 @@ const ProfileSchema = new mongoose.Schema(
     }, // Azure B2C ID
     personalInfo: {
       title: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "lookup",
+        type: String,
         required: true,
       },
       surname: { type: String, allowNull: true },
       forename: { type: String, allowNull: true },
       gender: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "lookup",
+        type: String,
         required: true,
       },
       dateOfBirth: { type: Date, allowNull: true },
       age: { type: Number, allowNull: true }, //calculated via backend
       // countryPrimaryQualification: { type: String, allowNull: true },
       countryPrimaryQualification: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "countries",
+        type: String,
         required: true,
         default: null,
       },
@@ -58,8 +55,7 @@ const ProfileSchema = new mongoose.Schema(
       areaOrTown: { type: String, allowNull: true },
       countyCityOrPostCode: { type: String, allowNull: true },
       country: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "countries",
+        type: String,
         required: true,
         default: null,
       },
