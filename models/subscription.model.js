@@ -1,10 +1,19 @@
 const mongoose = require("mongoose");
-const { PAYMENT_TYPE, PAYMENT_FREQUENCY, USER_TYPE } = require("../constants/enums");
+const {
+  PAYMENT_TYPE,
+  PAYMENT_FREQUENCY,
+  USER_TYPE,
+} = require("../constants/enums");
 
 const SubscriptionSchema = new mongoose.Schema(
   {
     ApplicationId: { type: String, required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: false,
+      default: null,
+    }, // Azure B2C ID
     membershipNumber: { type: String, unique: true, sparse: true }, // Auto-generated membership number
 
     subscriptionDetails: {
@@ -25,7 +34,11 @@ const SubscriptionSchema = new mongoose.Schema(
       otherSecondarySection: { type: String, allowNull: true },
       incomeProtectionScheme: { type: Boolean, default: false },
       inmoRewards: { type: Boolean, default: false },
-      paymentFrequency: { type: String, enum: Object.values(PAYMENT_FREQUENCY), default: PAYMENT_FREQUENCY.MONTHLY },
+      paymentFrequency: {
+        type: String,
+        enum: Object.values(PAYMENT_FREQUENCY),
+        default: PAYMENT_FREQUENCY.MONTHLY,
+      },
       valueAddedServices: { type: Boolean, default: false },
       termsAndConditions: { type: Boolean, default: true },
       membershipCategory: { type: String, allowNull: true },
@@ -33,6 +46,15 @@ const SubscriptionSchema = new mongoose.Schema(
       submissionDate: { type: Date, default: Date.now },
       dateLeft: { type: Date, allowNull: true },
       reasonLeft: { type: String, allowNull: true },
+    },
+
+    // Payment details for tracking payment information
+    paymentDetails: {
+      paymentIntentId: { type: String, allowNull: true },
+      amount: { type: Number, allowNull: true },
+      currency: { type: String, allowNull: true },
+      status: { type: String, allowNull: true },
+      updatedAt: { type: Date, allowNull: true },
     },
 
     // // Professional details that will be synced from professional details

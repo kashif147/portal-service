@@ -23,6 +23,16 @@ app.use(responseMiddleware);
 
 mongooseConnection();
 
+// Initialize RabbitMQ event system
+const { initEventSystem, setupConsumers } = require("./rabbitMQ");
+initEventSystem()
+  .then(() => {
+    setupConsumers();
+  })
+  .catch((error) => {
+    console.error("❌ Failed to initialize RabbitMQ:", error.message);
+  });
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "200mb" }));
 
