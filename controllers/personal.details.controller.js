@@ -201,3 +201,31 @@ exports.getMyPersonalDetails = async (req, res, next) => {
     return next(error);
   }
 };
+
+exports.getApplicationStatus = async (req, res, next) => {
+  try {
+    const { userId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    if (!applicationId) {
+      return next(AppError.badRequest("Application ID is required"));
+    }
+
+    const applicationStatus = await personalDetailsService.getApplicationStatus(
+      applicationId,
+      userId,
+      userType
+    );
+
+    return res.success({ applicationStatus });
+  } catch (error) {
+    console.error(
+      "PersonalDetailsController [getApplicationStatus] Error:",
+      error
+    );
+    if (error.message === "Personal details not found") {
+      return next(AppError.notFound("Application not found"));
+    }
+    return next(error);
+  }
+};
