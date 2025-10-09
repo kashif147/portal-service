@@ -45,6 +45,14 @@ async function publishEvent(routingKey, payload, options = {}) {
       ...options,
     };
 
+    console.log("📤 [PUBLISHER] Publishing event:", {
+      exchange: "domain.events",
+      routingKey,
+      eventId: payload.eventId,
+      eventType: payload.eventType,
+      timestamp: new Date().toISOString(),
+    });
+
     const success = channel.publish(
       "domain.events",
       routingKey,
@@ -53,17 +61,30 @@ async function publishEvent(routingKey, payload, options = {}) {
     );
 
     if (success) {
-      console.log("✅ Event published successfully:", routingKey);
+      console.log("✅ [PUBLISHER] Event published successfully:", {
+        routingKey,
+        eventId: payload.eventId,
+        eventType: payload.eventType,
+      });
     } else {
       console.warn(
-        "⚠️ Event publish failed - channel returned false:",
-        routingKey
+        "⚠️ [PUBLISHER] Event publish failed - channel returned false:",
+        {
+          routingKey,
+          eventId: payload.eventId,
+          eventType: payload.eventType,
+        }
       );
     }
 
     return success;
   } catch (error) {
-    console.error("❌ Failed to publish event:", error.message);
+    console.error("❌ [PUBLISHER] Failed to publish event:", {
+      error: error.message,
+      stack: error.stack,
+      routingKey,
+      eventId: payload?.eventId,
+    });
     return false;
   }
 }

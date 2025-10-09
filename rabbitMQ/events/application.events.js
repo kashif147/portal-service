@@ -12,6 +12,7 @@ const APPLICATION_EVENTS = {
 // Application Queues
 const APPLICATION_QUEUES = {
   APPLICATION_PROCESSING: "portal.application.processing",
+  PAYMENT_EVENTS: "portal.payment.events",
 };
 
 // Application event handlers

@@ -5,7 +5,11 @@ const {
   handleApplicationEvent,
 } = require("./application.events.js");
 
-const { PROFILE_EVENTS, handleProfileEvent } = require("./profile.events.js");
+const {
+  PROFILE_EVENTS,
+  PROFILE_QUEUES,
+  handleProfileEvent,
+} = require("./profile.events.js");
 
 // Combined event types for backward compatibility
 const EVENT_TYPES = {
@@ -18,6 +22,7 @@ const EVENT_TYPES = {
 // Combined queue names
 const QUEUES = {
   ...APPLICATION_QUEUES,
+  ...PROFILE_QUEUES,
 };
 
 module.exports = {
@@ -27,5 +32,6 @@ module.exports = {
   APPLICATION_QUEUES,
   handleApplicationEvent,
   PROFILE_EVENTS,
+  PROFILE_QUEUES,
   handleProfileEvent,
 };
