@@ -18,6 +18,11 @@ router.get(
   defaultPolicyMiddleware.requirePermission("portal", "read"),
   personalDetailsController.getPersonalDetails
 );
+router.get(
+  "/:applicationId/status",
+  defaultPolicyMiddleware.requirePermission("portal", "read"),
+  personalDetailsController.getApplicationStatus
+);
 router.put(
   "/:applicationId",
   defaultPolicyMiddleware.requirePermission("portal", "write"),

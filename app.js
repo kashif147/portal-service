@@ -23,6 +23,30 @@ app.use(responseMiddleware);
 
 mongooseConnection();
 
+// Initialize RabbitMQ event system (non-blocking)
+const { initEventSystem, setupConsumers } = require("./rabbitMQ");
+
+// Only initialize RabbitMQ if URL is configured
+if (process.env.RABBIT_URL) {
+  console.log("🐰 RabbitMQ URL configured, initializing...");
+  initEventSystem()
+    .then(() => {
+      console.log("✅ Initializing RabbitMQ consumers...");
+      return setupConsumers();
+    })
+    .then(() => {
+      console.log("✅ RabbitMQ fully initialized");
+    })
+    .catch((error) => {
+      console.error("❌ Failed to initialize RabbitMQ:", error.message);
+      console.error("⚠️ App will continue without RabbitMQ (degraded mode)");
+    });
+} else {
+  console.warn(
+    "⚠️ RABBIT_URL not configured, skipping RabbitMQ initialization"
+  );
+}
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "200mb" }));
 
@@ -74,10 +98,10 @@ app.get("/api", (req, res) => {
     version: "1.0.0",
     endpoints: {
       health: "GET /health",
-      personalDetails: "GET /personal-details (auth required)",
-      professionalDetails: "GET /professional-details (auth required)",
-      subscriptionDetails: "GET /subscription-details (auth required)",
-      applications: "GET /applications (auth required)",
+      personalDetails: "GET /api/personal-details (auth required)",
+      professionalDetails: "GET /api/professional-details (auth required)",
+      subscriptionDetails: "GET /api/subscription-details (auth required)",
+      applications: "GET /api/applications (auth required)",
     },
     authentication:
       "Bearer token required for all endpoints except /health and /api",
@@ -87,7 +111,7 @@ app.get("/api", (req, res) => {
 // Initialize authentication middleware for protected routes
 app.use(authenticate);
 
-app.use("/", require("./routes/index"));
+app.use("/api", require("./routes/index"));
 
 app.use(function (req, res, next) {
   next(createError(404));

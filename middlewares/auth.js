@@ -10,9 +10,14 @@ const { AppError } = require("../errors/AppError");
  */
 const authenticate = async (req, res, next) => {
   try {
+    console.log("=== AUTH MIDDLEWARE START ===");
+    console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+    console.log("Request headers:", req.headers);
+
     const authHeader = req.headers.authorization || req.headers.Authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("Missing or invalid authorization header");
       const authError = AppError.badRequest("Authorization header required", {
         tokenError: true,
         missingHeader: true,
@@ -29,7 +34,20 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer '
+    console.log("Token (first 20 chars):", token.substring(0, 20) + "...");
+
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET environment variable is not set!");
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("JWT decoded successfully:", {
+      sub: decoded.sub,
+      id: decoded.id,
+      tenantId: decoded.tenantId,
+      userType: decoded.userType,
+    });
 
     // Extract tenantId from token - support both tid and tenantId claims
     const tenantId =
@@ -67,6 +85,12 @@ const authenticate = async (req, res, next) => {
     req.roles = decoded.roles || [];
     req.permissions = decoded.permissions || [];
 
+    console.log("=== AUTH MIDDLEWARE SUCCESS ===");
+    console.log("Request context set:", {
+      userId: req.userId,
+      tenantId: req.tenantId,
+      userType: req.user?.userType,
+    });
     next();
   } catch (error) {
     console.error("JWT Verification Error:", error.message);

@@ -176,6 +176,46 @@ class PersonalDetailsService {
       throw error;
     }
   }
+
+  /**
+   * Get application status by application ID
+   * @param {string} applicationId - Application ID
+   * @param {string} userId - User ID (for authorization)
+   * @param {string} userType - User type (CRM/PORTAL)
+   * @returns {Promise<string>} Application status
+   */
+  async getApplicationStatus(applicationId, userId, userType) {
+    try {
+      if (!applicationId) {
+        throw AppError.badRequest("Application ID is required");
+      }
+
+      let personalDetails;
+      if (userType === "CRM") {
+        personalDetails = await personalDetailsHandler.getApplicationById(
+          applicationId
+        );
+      } else {
+        personalDetails =
+          await personalDetailsHandler.getByUserIdAndApplicationId(
+            userId,
+            applicationId
+          );
+      }
+
+      if (!personalDetails) {
+        throw new Error("Personal details not found");
+      }
+
+      return personalDetails.applicationStatus;
+    } catch (error) {
+      console.error(
+        "PersonalDetailsService [getApplicationStatus] Error:",
+        error
+      );
+      throw error;
+    }
+  }
 }
 
 module.exports = new PersonalDetailsService();

@@ -1,14 +1,13 @@
-const { publishEvent } = require("message-bus");
+const { publishDomainEvent } = require("./events.js");
 
 // Application Approval Events
 const emitApplicationApproved = async (data) => {
   try {
-    await publishEvent("application.approved", {
+    await publishDomainEvent("application.approved", {
       personalDetailsId: data.personalDetails._id,
       userId: data.personalDetails.userId,
       subscriptionDetails: data.subscriptionDetails,
       approvalDetails: data.approvalDetails,
-      timestamp: new Date().toISOString(),
     });
     console.log(
       "✅ Application Approved Event emitted:",
@@ -24,11 +23,10 @@ const emitApplicationApproved = async (data) => {
 
 const emitApplicationRejected = async (data) => {
   try {
-    await publishEvent("application.rejected", {
+    await publishDomainEvent("application.rejected", {
       personalDetailsId: data.personalDetails._id,
       userId: data.personalDetails.userId,
       approvalDetails: data.approvalDetails,
-      timestamp: new Date().toISOString(),
     });
     console.log(
       "✅ Application Rejected Event emitted:",

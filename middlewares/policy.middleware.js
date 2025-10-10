@@ -22,9 +22,13 @@ class PolicyMiddleware {
   requirePermission(resource, action) {
     return async (req, res, next) => {
       try {
+        console.log(`=== POLICY MIDDLEWARE START: ${resource}:${action} ===`);
+        console.log("Policy service URL:", this.policyClient.baseUrl);
+
         const token = req.headers.authorization?.replace("Bearer ", "");
 
         if (!token) {
+          console.log("No authorization token found");
           return res.status(401).json({
             success: false,
             error: "Authorization token required",
@@ -52,12 +56,30 @@ class PolicyMiddleware {
         console.log(`[POLICY_MIDDLEWARE] Token: ${token.substring(0, 20)}...`);
         console.log(`[POLICY_MIDDLEWARE] Context:`, context);
 
-        const result = await this.policyClient.evaluatePolicy(
-          token,
-          resource,
-          action,
-          context
-        );
+        let result;
+
+        // Check if auth bypass is enabled
+        if (process.env.AUTH_BYPASS_ENABLED === "true") {
+          console.log(
+            `[POLICY_MIDDLEWARE] Auth bypass enabled, granting access for ${resource}:${action}`
+          );
+          result = {
+            success: true,
+            decision: "PERMIT",
+            reason: "AUTH_BYPASS_ENABLED",
+            user: req.user || { id: context.userId, userType: "PORTAL" },
+            resource,
+            action,
+            timestamp: new Date().toISOString(),
+          };
+        } else {
+          result = await this.policyClient.evaluatePolicy(
+            token,
+            resource,
+            action,
+            context
+          );
+        }
 
         console.log(
           `[POLICY_MIDDLEWARE] User service response:`,
@@ -80,6 +102,7 @@ class PolicyMiddleware {
           console.log(
             `[POLICY_MIDDLEWARE] ✅ Authorization granted for ${resource}:${action}`
           );
+          console.log("=== POLICY MIDDLEWARE SUCCESS ===");
           next();
         } else {
           console.log(
