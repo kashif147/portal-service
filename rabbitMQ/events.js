@@ -86,6 +86,11 @@ async function setupConsumers() {
     );
 
     // 2. Payment service events queue (accounts.events exchange)
+    console.log("🔧 [SETUP] Creating payment queue...");
+    console.log("   Queue:", APPLICATION_QUEUES.PAYMENT_EVENTS);
+    console.log("   Exchange: accounts.events");
+    console.log("   Routing Key: application.status.updated");
+
     await createQueue(APPLICATION_QUEUES.PAYMENT_EVENTS, "accounts.events", [
       "application.status.updated",
     ]);

@@ -8,6 +8,11 @@ async function initConsumer() {
   if (connection) return;
 
   const url = process.env.RABBIT_URL || "amqp://localhost:5672";
+  console.log(
+    "🔗 [CONSUMER] Connecting to RabbitMQ:",
+    url.replace(/\/\/.*@/, "//***@")
+  ); // Hide credentials
+
   connection = await amqplib.connect(url);
   channel = await connection.createChannel();
 
@@ -61,6 +66,8 @@ async function createQueue(queueName, exchangeName, routingKeys = []) {
 
 async function consumeQueue(queueName, handler) {
   if (!channel) await initConsumer();
+
+  console.log(`🎧 [CONSUMER] Starting to consume queue: ${queueName}`);
 
   const consumer = await channel.consume(queueName, async (msg) => {
     if (!msg) return;
