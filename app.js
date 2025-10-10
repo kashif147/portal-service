@@ -23,15 +23,29 @@ app.use(responseMiddleware);
 
 mongooseConnection();
 
-// Initialize RabbitMQ event system
+// Initialize RabbitMQ event system (non-blocking)
 const { initEventSystem, setupConsumers } = require("./rabbitMQ");
-initEventSystem()
-  .then(() => {
-    setupConsumers();
-  })
-  .catch((error) => {
-    console.error("❌ Failed to initialize RabbitMQ:", error.message);
-  });
+
+// Only initialize RabbitMQ if URL is configured
+if (process.env.RABBIT_URL) {
+  console.log("🐰 RabbitMQ URL configured, initializing...");
+  initEventSystem()
+    .then(() => {
+      console.log("✅ Initializing RabbitMQ consumers...");
+      return setupConsumers();
+    })
+    .then(() => {
+      console.log("✅ RabbitMQ fully initialized");
+    })
+    .catch((error) => {
+      console.error("❌ Failed to initialize RabbitMQ:", error.message);
+      console.error("⚠️ App will continue without RabbitMQ (degraded mode)");
+    });
+} else {
+  console.warn(
+    "⚠️ RABBIT_URL not configured, skipping RabbitMQ initialization"
+  );
+}
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "200mb" }));
