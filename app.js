@@ -23,24 +23,41 @@ app.use(responseMiddleware);
 
 mongooseConnection();
 
-// Initialize RabbitMQ event system (non-blocking)
-const { initEventSystem, setupConsumers } = require("./rabbitMQ");
+// Initialize RabbitMQ event system (non-blocking) - Now using middleware
+const {
+  initEventSystem,
+  setupConsumers,
+  shutdownEventSystem,
+} = require("./rabbitMQ");
 
 // Only initialize RabbitMQ if URL is configured
 if (process.env.RABBIT_URL) {
-  console.log("🐰 RabbitMQ URL configured, initializing...");
+  console.log("🐰 RabbitMQ URL configured, initializing with middleware...");
   initEventSystem()
     .then(() => {
       console.log("✅ Initializing RabbitMQ consumers...");
       return setupConsumers();
     })
     .then(() => {
-      console.log("✅ RabbitMQ fully initialized");
+      console.log("✅ RabbitMQ fully initialized with middleware");
     })
     .catch((error) => {
       console.error("❌ Failed to initialize RabbitMQ:", error.message);
       console.error("⚠️ App will continue without RabbitMQ (degraded mode)");
     });
+
+  // Graceful shutdown
+  process.on("SIGTERM", async () => {
+    console.log("⏹️  SIGTERM received, shutting down gracefully...");
+    await shutdownEventSystem();
+    process.exit(0);
+  });
+
+  process.on("SIGINT", async () => {
+    console.log("⏹️  SIGINT received, shutting down gracefully...");
+    await shutdownEventSystem();
+    process.exit(0);
+  });
 } else {
   console.warn(
     "⚠️ RABBIT_URL not configured, skipping RabbitMQ initialization"
@@ -119,9 +136,5 @@ app.use(function (req, res, next) {
 
 app.use(corsErrorHandler);
 app.use(responseMiddleware.errorHandler);
-
-process.on("SIGINT", async () => {
-  process.exit(0);
-});
 
 module.exports = app;

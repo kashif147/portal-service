@@ -17,11 +17,10 @@ async function initConsumer() {
   channel = await connection.createChannel();
 
   // Assert exchanges to ensure they exist
-  await channel.assertExchange("domain.events", "topic", { durable: true });
   await channel.assertExchange("accounts.events", "topic", { durable: true });
 
   console.log("✅ RabbitMQ consumer initialized");
-  console.log("✅ Exchanges asserted: domain.events, accounts.events");
+  console.log("✅ Exchange asserted: accounts.events");
 
   // Handle connection events
   connection.on("error", (err) => {

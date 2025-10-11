@@ -1,37 +1,5 @@
-// Export all event types and handlers from individual event files
-const {
-  APPLICATION_EVENTS,
-  APPLICATION_QUEUES,
-  handleApplicationEvent,
-} = require("./application.events.js");
-
-const {
-  PROFILE_EVENTS,
-  PROFILE_QUEUES,
-  handleProfileEvent,
-} = require("./profile.events.js");
-
-// Combined event types for backward compatibility
-const EVENT_TYPES = {
-  // Application events
-  ...APPLICATION_EVENTS,
-  // Profile events
-  ...PROFILE_EVENTS,
-};
-
-// Combined queue names
-const QUEUES = {
-  ...APPLICATION_QUEUES,
-  ...PROFILE_QUEUES,
-};
+const { PROFILE_EVENTS } = require("./profile.application.create.js");
 
 module.exports = {
-  EVENT_TYPES,
-  QUEUES,
-  APPLICATION_EVENTS,
-  APPLICATION_QUEUES,
-  handleApplicationEvent,
   PROFILE_EVENTS,
-  PROFILE_QUEUES,
-  handleProfileEvent,
 };

@@ -9,9 +9,9 @@ async function initRabbit() {
   const url = process.env.RABBIT_URL || "amqp://localhost:5672";
   connection = await amqplib.connect(url);
   channel = await connection.createChannel();
-  await channel.assertExchange("domain.events", "topic", { durable: true });
+  await channel.assertExchange("portal.events", "topic", { durable: true });
 
-  console.log("✅ RabbitMQ publisher initialized");
+  console.log("✅ RabbitMQ publisher initialized - exchange: portal.events");
 
   // Handle connection events
   connection.on("error", (err) => {
@@ -46,7 +46,7 @@ async function publishEvent(routingKey, payload, options = {}) {
     };
 
     console.log("📤 [PUBLISHER] Publishing event:", {
-      exchange: "domain.events",
+      exchange: "portal.events",
       routingKey,
       eventId: payload.eventId,
       eventType: payload.eventType,
@@ -54,7 +54,7 @@ async function publishEvent(routingKey, payload, options = {}) {
     });
 
     const success = channel.publish(
-      "domain.events",
+      "portal.events",
       routingKey,
       Buffer.from(JSON.stringify(payload)),
       messageOptions

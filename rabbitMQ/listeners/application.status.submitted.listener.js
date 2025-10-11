@@ -1,7 +1,8 @@
 const { publishDomainEvent } = require("../events.js");
-const PersonalDetails = require("../../models/personal.details.model");
-const ProfessionalDetails = require("../../models/professional.details.model");
-const SubscriptionDetails = require("../../models/subscription.model");
+const { PROFILE_EVENTS } = require("../events/profile.application.create.js");
+const PersonalDetails = require("../../models/personal.details.model.js");
+const ProfessionalDetails = require("../../models/professional.details.model.js");
+const SubscriptionDetails = require("../../models/subscription.model.js");
 
 class ApplicationStatusUpdateListener {
   constructor() {
@@ -101,7 +102,7 @@ class ApplicationStatusUpdateListener {
 
       // 5. Emit event to profile service with all schema details
       console.log("📤 [STATUS_UPDATE_LISTENER] Emitting profile service event");
-      await publishDomainEvent("profile.service.application.updated", {
+      await publishDomainEvent(PROFILE_EVENTS.APPLICATION_CREATE, {
         applicationId: applicationId,
         tenantId: tenantId,
         status: status,
@@ -118,10 +119,10 @@ class ApplicationStatusUpdateListener {
         "❌ [STATUS_UPDATE_LISTENER] Error handling application status update:",
         {
           error: error.message,
-          stack: error.stack,
           applicationId: data?.applicationId,
         }
       );
+      throw error;
     }
   }
 }

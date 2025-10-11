@@ -6,15 +6,10 @@ const {
   stopAllConsumers,
 } = require("./consumer.js");
 
-// Import event types and handlers from separate event files
+const { PROFILE_EVENTS } = require("./events/index.js");
 const {
-  APPLICATION_EVENTS,
-  APPLICATION_QUEUES,
-  handleApplicationEvent,
-  PROFILE_EVENTS,
-  PROFILE_QUEUES,
-  handleProfileEvent,
-} = require("./events/index.js");
+  handleApplicationStatusUpdate,
+} = require("./listeners/eventHandler.js");
 
 // Initialize event system
 async function initEventSystem() {
@@ -70,55 +65,20 @@ async function setupConsumers() {
   try {
     console.log("🔧 Setting up RabbitMQ consumers...");
 
-    // 1. Internal application processing queue (domain.events exchange)
-    await createQueue(
-      APPLICATION_QUEUES.APPLICATION_PROCESSING,
-      "domain.events",
-      ["application.*"]
-    );
-    await consumeQueue(
-      APPLICATION_QUEUES.APPLICATION_PROCESSING,
-      handleApplicationEvent
-    );
-    console.log(
-      "✅ Internal application processing consumer ready:",
-      APPLICATION_QUEUES.APPLICATION_PROCESSING
-    );
-
-    // 2. Payment service events queue (accounts.events exchange)
+    // Payment service events queue (accounts.events exchange)
+    const PAYMENT_QUEUE = "portal.payment.events";
     console.log("🔧 [SETUP] Creating payment queue...");
-    console.log("   Queue:", APPLICATION_QUEUES.PAYMENT_EVENTS);
+    console.log("   Queue:", PAYMENT_QUEUE);
     console.log("   Exchange: accounts.events");
     console.log("   Routing Key: application.status.updated");
 
-    await createQueue(APPLICATION_QUEUES.PAYMENT_EVENTS, "accounts.events", [
+    await createQueue(PAYMENT_QUEUE, "accounts.events", [
       "application.status.updated",
     ]);
-    await consumeQueue(
-      APPLICATION_QUEUES.PAYMENT_EVENTS,
-      handleApplicationEvent
-    );
-    console.log(
-      "✅ Payment service events consumer ready:",
-      APPLICATION_QUEUES.PAYMENT_EVENTS
-    );
-
-    // 3. Profile service events queue (domain.events exchange)
-    await createQueue(PROFILE_QUEUES.PROFILE_EVENTS, "domain.events", [
-      "profile.service.*",
-    ]);
-    await consumeQueue(PROFILE_QUEUES.PROFILE_EVENTS, handleProfileEvent);
-    console.log(
-      "✅ Profile service events consumer ready:",
-      PROFILE_QUEUES.PROFILE_EVENTS
-    );
+    await consumeQueue(PAYMENT_QUEUE, handleApplicationStatusUpdate);
+    console.log("✅ Payment service events consumer ready:", PAYMENT_QUEUE);
 
     console.log("✅ All consumers set up successfully");
-    console.log("📊 Active queues:", {
-      internalQueue: APPLICATION_QUEUES.APPLICATION_PROCESSING,
-      paymentQueue: APPLICATION_QUEUES.PAYMENT_EVENTS,
-      profileQueue: PROFILE_QUEUES.PROFILE_EVENTS,
-    });
   } catch (error) {
     console.error("❌ Failed to set up consumers:", error.message);
     console.error("❌ Stack trace:", error.stack);
@@ -142,8 +102,7 @@ async function shutdownEventSystem() {
 }
 
 module.exports = {
-  EVENT_TYPES: APPLICATION_EVENTS,
-  QUEUES: APPLICATION_QUEUES,
+  PROFILE_EVENTS,
   initEventSystem,
   publishDomainEvent,
   setupConsumers,
