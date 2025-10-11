@@ -17,7 +17,7 @@
     "url": "https://github.com/kashif147/portal-service.git"
   },
   "dependencies": {
-    "@projectShell/rabbitmq-middleware": "github:kashif147/rabbitmq-middleware#e23841fddb3ef861767dfb89ae6301438a5660b3",
+    "@projectShell/rabbitmq-middleware": "github:kashif147/rabbitmq-middleware#3f1c69f994f306dde7a9d170abf6067216347866",
     "axios": "^1.6.7",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
