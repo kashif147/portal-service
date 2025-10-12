@@ -33,6 +33,19 @@ class ApplicationStatusUpdateListener {
         tenantId,
       } = data;
 
+      // Validate required payment data
+      if (!paymentIntentId || !amount || !currency) {
+        console.warn(
+          "⚠️ [STATUS_UPDATE_LISTENER] Missing payment information:",
+          {
+            applicationId,
+            hasPaymentIntentId: !!paymentIntentId,
+            hasAmount: !!amount,
+            hasCurrency: !!currency,
+          }
+        );
+      }
+
       // 1. Find application with ID
       const personalDetails = await PersonalDetails.findOne({
         ApplicationId: applicationId,
@@ -75,6 +88,15 @@ class ApplicationStatusUpdateListener {
 
       if (subscriptionDetails) {
         // Update existing subscription details with payment information
+        console.log(
+          "📝 [STATUS_UPDATE_LISTENER] Updating existing subscription details:",
+          {
+            subscriptionId: subscriptionDetails._id,
+            applicationId: subscriptionDetails.ApplicationId,
+            currentPaymentDetails: subscriptionDetails.paymentDetails,
+          }
+        );
+
         const subscriptionUpdateData = {
           paymentDetails: {
             paymentIntentId: paymentIntentId,
@@ -92,7 +114,14 @@ class ApplicationStatusUpdateListener {
         );
 
         console.log(
-          "✅ [STATUS_UPDATE_LISTENER] Payment information recorded in subscription details"
+          "✅ [STATUS_UPDATE_LISTENER] Payment information recorded in subscription details:",
+          {
+            subscriptionId: subscriptionDetails._id,
+            paymentIntentId:
+              subscriptionDetails.paymentDetails?.paymentIntentId,
+            amount: subscriptionDetails.paymentDetails?.amount,
+            currency: subscriptionDetails.paymentDetails?.currency,
+          }
         );
       } else {
         // Create subscription details if they don't exist
