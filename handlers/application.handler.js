@@ -2,9 +2,6 @@ const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
 const { APPLICATION_STATUS } = require("../constants/enums");
-const {
-  generateMembershipNumber,
-} = require("../helpers/membership.number.generator");
 
 exports.getAllApplications = (statusFilters = []) =>
   new Promise(async (resolve, reject) => {
@@ -76,30 +73,8 @@ exports.updateApplicationStatus = (
         return;
       }
 
-      // If application is approved, generate membership number
-      if (newStatus === APPLICATION_STATUS.APPROVED) {
-        try {
-          // Find the subscription details for this application
-          const subscriptionDetails = await SubscriptionDetails.findOne({
-            ApplicationId: applicationId,
-          });
-
-          if (subscriptionDetails) {
-            // Generate membership number
-            const membershipNumber = await generateMembershipNumber();
-
-            // Update subscription with membership number
-            await SubscriptionDetails.findOneAndUpdate(
-              { ApplicationId: applicationId },
-              { membershipNumber: membershipNumber },
-              { new: true }
-            );
-          }
-        } catch (error) {
-          console.error("Error generating membership number:", error);
-          // Don't fail the approval process if membership number generation fails
-        }
-      }
+      // NOTE: Membership number generation happens in profile-service during approval
+      // Portal service only stores application data and syncs to profile service
 
       resolve(result);
     } catch (error) {

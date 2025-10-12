@@ -13,10 +13,13 @@ router.get(
   defaultPolicyMiddleware.requirePermission("portal", "read"),
   applicationController.getApplicationById
 );
-router.put(
-  "/status/:applicationId",
-  defaultPolicyMiddleware.requirePermission("portal", "write"),
-  applicationController.approveApplication
-);
+
+// NOTE: Application approval is handled in profile-service by CRM users
+// Portal service only stores and syncs application data
+// router.put(
+//   "/status/:applicationId",
+//   defaultPolicyMiddleware.requirePermission("portal", "write"),
+//   applicationController.approveApplication
+// );
 
 module.exports = router;

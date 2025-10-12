@@ -69,11 +69,12 @@ class ApplicationStatusUpdateListener {
       );
 
       // 3. Record payment information in subscription details (single source of truth)
-      const subscriptionDetails = await SubscriptionDetails.findOne({
+      let subscriptionDetails = await SubscriptionDetails.findOne({
         ApplicationId: applicationId,
       });
 
       if (subscriptionDetails) {
+        // Update existing subscription details with payment information
         const subscriptionUpdateData = {
           paymentDetails: {
             paymentIntentId: paymentIntentId,
@@ -84,7 +85,7 @@ class ApplicationStatusUpdateListener {
           },
         };
 
-        await SubscriptionDetails.findByIdAndUpdate(
+        subscriptionDetails = await SubscriptionDetails.findByIdAndUpdate(
           subscriptionDetails._id,
           subscriptionUpdateData,
           { new: true }
@@ -92,6 +93,34 @@ class ApplicationStatusUpdateListener {
 
         console.log(
           "✅ [STATUS_UPDATE_LISTENER] Payment information recorded in subscription details"
+        );
+      } else {
+        // Create subscription details if they don't exist
+        console.log(
+          "⚠️ [STATUS_UPDATE_LISTENER] Subscription details not found, creating with payment information"
+        );
+
+        subscriptionDetails = await SubscriptionDetails.create({
+          ApplicationId: applicationId,
+          userId: personalDetails.userId,
+          paymentDetails: {
+            paymentIntentId: paymentIntentId,
+            amount: amount,
+            currency: currency,
+            status: status,
+            updatedAt: new Date(),
+          },
+          subscriptionDetails: {
+            // Defaults will be applied from schema
+          },
+          meta: {
+            createdBy: personalDetails.userId,
+            userType: "PORTAL",
+          },
+        });
+
+        console.log(
+          "✅ [STATUS_UPDATE_LISTENER] Subscription details created with payment information"
         );
       }
 

@@ -1,3 +1,9 @@
+/**
+ * NOTE: This file is not currently used in portal-service.
+ * Membership number generation happens ONLY in profile-service during approval.
+ * This file is kept for reference only.
+ */
+
 const SubscriptionDetails = require("../models/subscription.model");
 
 const YEAR_TO_ALPHABET = {
