@@ -1,17 +1,23 @@
 const Joi = require("joi");
-const { APPLICATION_STATUS, PREFERRED_ADDRESS, PREFERRED_EMAIL, PAYMENT_TYPE, PAYMENT_FREQUENCY } = require("../constants/enums");
+const {
+  APPLICATION_STATUS,
+  PREFERRED_ADDRESS,
+  PREFERRED_EMAIL,
+  PAYMENT_TYPE,
+  PAYMENT_FREQUENCY,
+} = require("../constants/enums");
 
 module.exports.personal_details_create = Joi.object({
   personalInfo: Joi.object({
-    title: Joi.string().optional().default(null),
+    title: Joi.string().required(),
     surname: Joi.string().optional().default(null),
     forename: Joi.string().optional().default(null),
-    gender: Joi.string().optional().default(null),
+    gender: Joi.string().required(),
     dateOfBirth: Joi.date().iso().optional().default(null),
-    countryPrimaryQualification: Joi.string().optional().default(null),
+    countryPrimaryQualification: Joi.string().required(),
     deceased: Joi.boolean().optional().default(false),
     deceasedDate: Joi.date().iso().optional().default(null),
-  }).optional(),
+  }).required(),
   contactInfo: Joi.object({
     preferredAddress: Joi.string()
       .valid(...Object.values(PREFERRED_ADDRESS))
@@ -22,7 +28,7 @@ module.exports.personal_details_create = Joi.object({
     streetOrRoad: Joi.string().optional().default(null),
     areaOrTown: Joi.string().optional().default(null),
     countyCityOrPostCode: Joi.string().optional().default(null),
-    country: Joi.string().optional().default(null),
+    country: Joi.string().required(),
     mobileNumber: Joi.string().optional().default(null),
     telephoneNumber: Joi.string().optional().allow(null).default(null),
     preferredEmail: Joi.string()
@@ -32,7 +38,7 @@ module.exports.personal_details_create = Joi.object({
     personalEmail: Joi.string().optional().default(null),
     workEmail: Joi.string().optional().default(null),
     consent: Joi.boolean().optional().default(false),
-  }),
+  }).required(),
 });
 
 module.exports.personal_details_update = Joi.object({
@@ -71,12 +77,19 @@ module.exports.personal_details_update = Joi.object({
 
 module.exports.application_status_query = Joi.object({
   type: Joi.alternatives()
-    .try(Joi.string().valid(...Object.values(APPLICATION_STATUS)), Joi.array().items(Joi.string().valid(...Object.values(APPLICATION_STATUS))))
+    .try(
+      Joi.string().valid(...Object.values(APPLICATION_STATUS)),
+      Joi.array().items(
+        Joi.string().valid(...Object.values(APPLICATION_STATUS))
+      )
+    )
     .optional(),
 });
 
 module.exports.application_approve = Joi.object({
-  applicationStatus: Joi.string().valid(APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED).required(),
+  applicationStatus: Joi.string()
+    .valid(APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED)
+    .required(),
   comments: Joi.string().optional(),
 });
 //
