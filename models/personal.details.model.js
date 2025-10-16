@@ -25,18 +25,18 @@ const ProfileSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
-      surname: { type: String, allowNull: true },
-      forename: { type: String, allowNull: true },
+      surname: { type: String, allowNull: false, required: true },
+      forename: { type: String, allowNull: false, required: true },
       gender: {
         type: String,
         required: true,
       },
-      dateOfBirth: { type: Date, allowNull: true },
+      dateOfBirth: { type: Date, allowNull: false, required: true },
       age: { type: Number, allowNull: true }, //calculated via backend
       // countryPrimaryQualification: { type: String, allowNull: true },
       countryPrimaryQualification: {
         type: String,
-        required: true,
+        required: false,
         default: null,
       },
 
@@ -47,13 +47,14 @@ const ProfileSchema = new mongoose.Schema(
       preferredAddress: {
         type: String,
         enum: Object.values(PREFERRED_ADDRESS),
+        required: true,
         default: PREFERRED_ADDRESS.HOME,
       },
       eircode: { type: String, allowNull: true },
-      buildingOrHouse: { type: String, allowNull: true },
+      buildingOrHouse: { type: String, allowNull: false, required: true },
       streetOrRoad: { type: String, allowNull: true },
       areaOrTown: { type: String, allowNull: true },
-      countyCityOrPostCode: { type: String, allowNull: true },
+      countyCityOrPostCode: { type: String, allowNull: false, required: true },
       country: {
         type: String,
         required: true,
@@ -65,6 +66,7 @@ const ProfileSchema = new mongoose.Schema(
       preferredEmail: {
         type: String,
         enum: Object.values(PREFERRED_EMAIL),
+        required: true,
         default: PREFERRED_EMAIL.PERSONAL,
       },
       personalEmail: { type: String, allowNull: true },
