@@ -5,6 +5,8 @@ require("dotenv").config({ path: envFile });
 
 var createError = require("http-errors");
 var express = require("express");
+const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
 const { corsMiddleware, corsErrorHandler } = require("./config/cors");
 
 const { mongooseConnection } = require("./config/db");
@@ -17,6 +19,9 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 // require("message-bus/src/index");
 
 var app = express();
+
+// Trust proxy for secure cookies
+app.set("trust proxy", 1);
 
 app.use(responseMiddleware);
 
@@ -65,6 +70,12 @@ if (process.env.RABBIT_URL) {
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "200mb" }));
+
+// Security middleware
+app.use(helmet());
+
+// Cookie parser
+app.use(cookieParser());
 
 app.use(loggerMiddleware);
 
@@ -123,6 +134,9 @@ app.get("/api", (req, res) => {
       "Bearer token required for all endpoints except /health and /api",
   });
 });
+
+// Auth routes (no authentication required)
+app.use("/auth", require("./routes/auth.routes"));
 
 // API routes (authentication handled by policy middleware in individual routes)
 app.use("/api", require("./routes/index"));
