@@ -10,7 +10,8 @@
     "start:dev": "NODE_ENV=development node ./bin/portal-service.js",
     "start:staging": "NODE_ENV=staging node ./bin/portal-service.js",
     "dev:watch": "NODE_ENV=development nodemon ./bin/portal-service.js",
-    "staging:watch": "NODE_ENV=staging nodemon ./bin/portal-service.js"
+    "staging:watch": "NODE_ENV=staging nodemon ./bin/portal-service.js",
+    "postinstall": "echo \"Dependencies installed successfully\""
   },
   "repository": {
     "type": "git",
@@ -18,7 +19,7 @@
   },
   "dependencies": {
     "@membership/policy-middleware": "github:kashif147/policy-middleware",
-    "@projectShell/rabbitmq-middleware": "file:../rabbitmq-middleware",
+    "@projectShell/rabbitmq-middleware": "github:kashif147/rabbitmq-middleware",
     "amqplib": "^0.10.9",
     "axios": "^1.6.7",
     "bcryptjs": "^3.0.2",

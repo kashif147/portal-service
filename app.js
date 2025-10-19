@@ -1,7 +1,11 @@
 var path = require("path");
-const envFile =
-  process.env.NODE_ENV === "staging" ? ".env.staging" : ".env.development";
-require("dotenv").config({ path: envFile });
+// Load .env file based on environment
+if (process.env.NODE_ENV === "staging") {
+  require("dotenv").config({ path: ".env.staging" });
+} else if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config({ path: ".env.development" });
+}
+// Production uses Azure Application Settings
 
 var createError = require("http-errors");
 var express = require("express");
