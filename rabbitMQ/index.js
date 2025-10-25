@@ -10,10 +10,11 @@ const {
 // Import local event definitions
 const { PROFILE_EVENTS } = require("./events/profile.application.create.js");
 
-// Import event handlers
-const {
-  handleApplicationStatusUpdate,
-} = require("./listeners/eventHandler.js");
+// Import the listener directly
+const ApplicationStatusUpdateListener = require("./listeners/application.status.submitted.listener.js");
+
+// Import event publisher utility
+const { publishDomainEvent } = require("./utils/eventPublisher.js");
 
 // Initialize event system
 async function initEventSystem() {
@@ -28,33 +29,6 @@ async function initEventSystem() {
     console.error("❌ Failed to initialize event system:", error.message);
     throw error;
   }
-}
-
-// Publish domain events using middleware
-async function publishDomainEvent(eventType, data, metadata = {}) {
-  const result = await publisher.publish(eventType, data, {
-    tenantId: metadata.tenantId,
-    correlationId: metadata.correlationId || generateEventId(),
-    metadata: {
-      service: "portal-service",
-      version: "1.0",
-      ...metadata,
-    },
-  });
-
-  if (result.success) {
-    console.log("✅ [DOMAIN EVENT] Published successfully:", {
-      eventType,
-      eventId: result.eventId,
-    });
-  } else {
-    console.error("❌ [DOMAIN EVENT] Failed to publish:", {
-      eventType,
-      error: result.error,
-    });
-  }
-
-  return result.success;
 }
 
 // Set up consumers using middleware
@@ -84,10 +58,9 @@ async function setupConsumers() {
     consumer.registerHandler(
       "application.status.updated",
       async (payload, context) => {
-        await handleApplicationStatusUpdate(
-          payload,
-          context.routingKey,
-          context.message
+        const { data } = payload;
+        await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
+          data
         );
       }
     );
@@ -112,11 +85,6 @@ async function shutdownEventSystem() {
   } catch (error) {
     console.error("❌ Error during event system shutdown:", error.message);
   }
-}
-
-// Utility function
-function generateEventId() {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 // Export event types (merge middleware and local events)

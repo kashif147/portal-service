@@ -1,4 +1,4 @@
-const { publishDomainEvent } = require("../events.js");
+const { publishDomainEvent } = require("../utils/eventPublisher.js");
 const { PROFILE_EVENTS } = require("../events/profile.application.create.js");
 const PersonalDetails = require("../../models/personal.details.model.js");
 const ProfessionalDetails = require("../../models/professional.details.model.js");
