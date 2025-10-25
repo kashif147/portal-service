@@ -168,7 +168,14 @@ exports.getMyPersonalDetails = async (req, res, next) => {
 
     if (!userId) {
       console.log("User ID check failed:", userId);
-      return next(AppError.badRequest("User ID is required"));
+      console.log("req.user object:", JSON.stringify(req.user, null, 2));
+      console.log("req.user.id:", req.user?.id);
+      console.log("req.user._id:", req.user?._id);
+      return next(
+        AppError.badRequest(
+          "User ID is required. Please ensure you are properly authenticated."
+        )
+      );
     }
 
     console.log(

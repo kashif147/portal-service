@@ -10,6 +10,14 @@ function extractUserAndCreatorContext(req) {
     userId = null;
   }
 
+  // Debug logging to help troubleshoot user context issues
+  console.log("=== extractUserAndCreatorContext DEBUG ===");
+  console.log("req.user:", JSON.stringify(req.user, null, 2));
+  console.log("userType:", userType);
+  console.log("creatorId:", creatorId);
+  console.log("userId:", userId);
+  console.log("=== END DEBUG ===");
+
   return {
     userType,
     userId,
