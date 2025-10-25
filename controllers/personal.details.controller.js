@@ -7,10 +7,24 @@ const { AppError } = require("../errors/AppError");
 
 exports.createPersonalDetails = async (req, res, next) => {
   try {
+    console.log("=== createPersonalDetails START ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
+    console.log("Extracted context:", { userId, creatorId, userType });
+
+    if (!userId) {
+      console.log("User ID is missing in createPersonalDetails");
+      return next(
+        AppError.badRequest(
+          "User ID is required. Please ensure you are properly authenticated."
+        )
+      );
+    }
 
     const validatedData =
       await joischemas.personal_details_create.validateAsync(req.body);
+    console.log("Validation passed:", JSON.stringify(validatedData, null, 2));
 
     if (userType === "CRM") {
       const email =
@@ -38,21 +52,49 @@ exports.createPersonalDetails = async (req, res, next) => {
       }
     }
 
+    console.log(
+      "Calling personalDetailsService.createPersonalDetails with data:",
+      {
+        ...validatedData,
+        userId,
+        meta: { createdBy: creatorId, userType },
+      }
+    );
+
     const result = await personalDetailsService.createPersonalDetails({
       ...validatedData,
       userId,
       meta: { createdBy: creatorId, userType },
     });
 
+    console.log("=== createPersonalDetails SUCCESS ===");
     return res.success(result);
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [createPersonalDetails] Error:",
-      error
-    );
+    console.error("=== createPersonalDetails ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Error details:", JSON.stringify(error, null, 2));
+
     if (error.isJoi) {
+      console.error("Joi validation error:", error.details);
       return next(AppError.badRequest("Validation error: " + error.message));
     }
+
+    if (error.name === "ValidationError") {
+      console.error("Mongoose validation error:", error.errors);
+      return next(
+        AppError.badRequest("Data validation error: " + error.message)
+      );
+    }
+
+    if (error.code === 11000) {
+      console.error("Duplicate key error:", error.keyValue);
+      return next(
+        AppError.conflict("Personal details already exist for this user")
+      );
+    }
+
+    console.error("=== END ERROR ===");
     return next(error);
   }
 };
