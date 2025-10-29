@@ -13,8 +13,8 @@ function extractUserAndCreatorContext(req) {
   // TEMPORARY: Handle auth bypass case
   if (process.env.AUTH_BYPASS_ENABLED === "true" && !userId) {
     console.log("=== AUTH BYPASS: Creating mock user context ===");
-    userId = "bypass-user-id";
-    creatorId = "bypass-user-id";
+    userId = "bypass-user";
+    creatorId = "bypass-user";
     userType = "PORTAL";
   }
 

@@ -31,7 +31,7 @@ class PolicyAdapter {
     this.baseURL =
       options.baseURL ||
       process.env.POLICY_SERVICE_URL ||
-      "https://userserviceshell-aqf6f0b8fqgmagch.canadacentral-01.azurewebsites.net";
+      "http://localhost:3000";
     this.timeout = options.timeout || 5000;
     this.retries = options.retries || 3;
   }
@@ -361,9 +361,7 @@ class PolicyAdapter {
 
 // Create default policy adapter instance
 const defaultPolicyAdapter = new PolicyAdapter({
-  baseURL:
-    process.env.POLICY_SERVICE_URL ||
-    "https://userserviceshell-aqf6f0b8fqgmagch.canadacentral-01.azurewebsites.net",
+  baseURL: process.env.POLICY_SERVICE_URL || "http://localhost:3000",
   timeout: 5000,
   retries: 3,
 });
