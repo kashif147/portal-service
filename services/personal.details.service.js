@@ -40,14 +40,24 @@ class PersonalDetailsService {
         throw AppError.badRequest("Application ID is required");
       }
 
+      let personalDetails;
       if (userType === "CRM") {
-        return await personalDetailsHandler.getApplicationById(applicationId);
-      } else {
-        return await personalDetailsHandler.getByUserIdAndApplicationId(
-          userId,
+        personalDetails = await personalDetailsHandler.getApplicationById(
           applicationId
         );
+      } else {
+        personalDetails =
+          await personalDetailsHandler.getByUserIdAndApplicationId(
+            userId,
+            applicationId
+          );
       }
+
+      if (!personalDetails) {
+        throw new Error("Personal details not found");
+      }
+
+      return personalDetails;
     } catch (error) {
       console.error(
         "PersonalDetailsService [getPersonalDetails] Error:",
