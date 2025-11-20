@@ -9,7 +9,7 @@ const {
 
 const ProfileSchema = new mongoose.Schema(
   {
-    ApplicationId: {
+    applicationId: {
       type: String,
       default: uuidv4,
       unique: true,

@@ -99,7 +99,7 @@ exports.getApplicationById = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
       const result = await PersonalDetails.findOne({
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
       resolve(result);
     } catch (error) {
@@ -116,7 +116,7 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
     try {
       const result = await PersonalDetails.findOne({
         userId: userId,
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
       resolve(result);
     } catch (error) {
@@ -132,7 +132,7 @@ exports.updateByApplicationId = (applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
       const record = await PersonalDetails.findOneAndUpdate(
-        { ApplicationId: applicationId },
+        { applicationId: applicationId },
         updateData,
         {
           new: true,
@@ -154,7 +154,7 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
       const record = await PersonalDetails.findOneAndUpdate(
-        { userId: userId, ApplicationId: applicationId },
+        { userId: userId, applicationId: applicationId },
         updateData,
         {
           new: true,
@@ -176,7 +176,7 @@ exports.deleteByApplicationId = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
       const record = await PersonalDetails.findOneAndDelete({
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
@@ -194,7 +194,7 @@ exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
     try {
       const record = await PersonalDetails.findOneAndDelete({
         userId: userId,
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
@@ -211,7 +211,7 @@ exports.updateApplicationStatus = (applicationId, status) =>
   new Promise(async (resolve, reject) => {
     try {
       const result = await PersonalDetails.findOneAndUpdate(
-        { ApplicationId: applicationId },
+        { applicationId: applicationId },
         { applicationStatus: status },
         { new: true }
       );

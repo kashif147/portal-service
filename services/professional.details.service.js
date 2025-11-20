@@ -53,7 +53,7 @@ class ProfessionalDetailsService {
 
       const createData = {
         ...data,
-        ApplicationId: applicationId,
+        applicationId: applicationId,
         userId: userId,
         meta: { createdBy: userId, userType: userType },
       };

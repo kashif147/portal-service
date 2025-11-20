@@ -2,8 +2,13 @@ const mongoose = require("mongoose");
 
 const ProfessionalSchema = new mongoose.Schema(
   {
-    ApplicationId: { type: String, required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: false, default: null }, // Azure B2C ID
+    applicationId: { type: String, required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: false,
+      default: null,
+    }, // Azure B2C ID
     professionalDetails: {
       membershipCategory: { type: String, allowNull: true },
       workLocation: { type: String, allowNull: true },
@@ -19,6 +24,7 @@ const ProfessionalSchema = new mongoose.Schema(
       isRetired: { type: Boolean, default: false },
       retiredDate: { type: Date, allowNull: true },
       studyLocation: { type: String, allowNull: true },
+      startDate: { type: Date, allowNull: true },
       graduationDate: { type: Date, allowNull: true },
     },
 

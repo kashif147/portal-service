@@ -7,7 +7,7 @@ const {
 
 const SubscriptionSchema = new mongoose.Schema(
   {
-    ApplicationId: { type: String, required: true },
+    applicationId: { type: String, required: true },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "users",

@@ -48,7 +48,7 @@ class ApplicationStatusUpdateListener {
 
       // 1. Find application with ID
       const personalDetails = await PersonalDetails.findOne({
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
 
       if (!personalDetails) {
@@ -61,7 +61,7 @@ class ApplicationStatusUpdateListener {
 
       console.log("✅ [STATUS_UPDATE_LISTENER] Found personal details:", {
         id: personalDetails._id,
-        applicationId: personalDetails.ApplicationId,
+        applicationId: personalDetails.applicationId,
         userId: personalDetails.userId,
       });
 
@@ -83,7 +83,7 @@ class ApplicationStatusUpdateListener {
 
       // 3. Record payment information in subscription details (single source of truth)
       let subscriptionDetails = await SubscriptionDetails.findOne({
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
 
       if (subscriptionDetails) {
@@ -92,7 +92,7 @@ class ApplicationStatusUpdateListener {
           "📝 [STATUS_UPDATE_LISTENER] Updating existing subscription details:",
           {
             subscriptionId: subscriptionDetails._id,
-            applicationId: subscriptionDetails.ApplicationId,
+            applicationId: subscriptionDetails.applicationId,
             currentPaymentDetails: subscriptionDetails.paymentDetails,
           }
         );
@@ -130,7 +130,7 @@ class ApplicationStatusUpdateListener {
         );
 
         subscriptionDetails = await SubscriptionDetails.create({
-          ApplicationId: applicationId,
+          applicationId: applicationId,
           userId: personalDetails.userId,
           paymentDetails: {
             paymentIntentId: paymentIntentId,
@@ -155,7 +155,7 @@ class ApplicationStatusUpdateListener {
 
       // 4. Get all related data for profile service event
       const professionalDetails = await ProfessionalDetails.findOne({
-        ApplicationId: applicationId,
+        applicationId: applicationId,
       });
 
       // 5. Emit event to profile service with all schema details
