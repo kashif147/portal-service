@@ -13,7 +13,7 @@
  * the PDP pattern. It delegates all authorization decisions to the user-service PDP.
  */
 
-const PolicyClient = require("../utils/policyClient");
+const { PolicyClient } = require("@membership/policy-middleware");
 const crypto = require("crypto");
 
 /**

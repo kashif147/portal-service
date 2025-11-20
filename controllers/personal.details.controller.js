@@ -2,7 +2,7 @@ const personalDetailsService = require("../services/personal.details.service");
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
-const policyClient = require("../utils/policyClient");
+const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
 
 exports.createPersonalDetails = async (req, res, next) => {
@@ -26,9 +26,36 @@ exports.createPersonalDetails = async (req, res, next) => {
       await joischemas.personal_details_create.validateAsync(req.body);
     console.log("Validation passed:", JSON.stringify(validatedData, null, 2));
 
+    // Validate userType early to prevent invalid userTypes from bypassing duplicate checks
+    if (!userType) {
+      console.error("UserType is missing in request context");
+      return next(
+        AppError.badRequest(
+          "User type is required. Please ensure authentication is valid."
+        )
+      );
+    }
+
+    if (userType !== "CRM" && userType !== "PORTAL") {
+      console.error("Invalid userType:", userType);
+      return next(
+        AppError.badRequest(
+          `Invalid user type: ${userType}. Expected PORTAL or CRM.`
+        )
+      );
+    }
+
+    // Perform duplicate check based on userType
     if (userType === "CRM") {
       const email =
         req.body.contactInfo?.personalEmail || req.body.contactInfo?.workEmail;
+      if (!email) {
+        return next(
+          AppError.badRequest(
+            "Email is required for CRM users to check for duplicates"
+          )
+        );
+      }
       const existingPersonalDetails = await personalDetailsHandler.getByEmail(
         email
       );
@@ -39,7 +66,12 @@ exports.createPersonalDetails = async (req, res, next) => {
           )
         );
       }
-    } else {
+    } else if (userType === "PORTAL") {
+      if (!userId) {
+        return next(
+          AppError.badRequest("User ID is required for portal users")
+        );
+      }
       const existingPersonalDetails = await personalDetailsHandler.getByUserId(
         userId
       );
