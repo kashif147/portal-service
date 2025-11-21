@@ -77,4 +77,7 @@ const SubscriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index for frequently queried field
+SubscriptionSchema.index({ applicationId: 1 });
+
 module.exports = mongoose.model("subscriptionDetails", SubscriptionSchema);
