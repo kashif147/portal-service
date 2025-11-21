@@ -13,7 +13,7 @@ exports.createPersonalDetails = async (req, res, next) => {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
     console.log("Extracted context:", { userId, creatorId, userType });
 
-    if (!userId) {
+    if (!userId && userType !== "CRM") {
       console.log("User ID is missing in createPersonalDetails");
       return next(
         AppError.badRequest(
