@@ -267,13 +267,26 @@ class ApplicationStatusUpdateListener {
       );
 
       // 5. Emit event to profile service with all schema details
+      // Convert Mongoose documents to plain objects for JSON serialization
+      // Use toObject() with options to ensure all fields are included
+      const toPlainObject = (doc) => {
+        if (!doc) return null;
+        if (doc.toObject && typeof doc.toObject === "function") {
+          return doc.toObject({
+            flattenMaps: true, // Flatten Maps to objects
+            virtuals: false, // Don't include virtuals
+          });
+        }
+        return doc;
+      };
+
       const eventPayload = {
         applicationId: applicationId,
         tenantId: tenantId,
         status: status,
-        personalDetails: updatedPersonalDetails,
-        professionalDetails: professionalDetails,
-        subscriptionDetails: subscriptionDetails, // paymentDetails already included here
+        personalDetails: toPlainObject(updatedPersonalDetails),
+        professionalDetails: toPlainObject(professionalDetails),
+        subscriptionDetails: toPlainObject(subscriptionDetails),
       };
 
       console.log(
@@ -289,6 +302,9 @@ class ApplicationStatusUpdateListener {
           subscriptionDetailsApplicationId:
             eventPayload.subscriptionDetails?.applicationId,
           hasPaymentDetails: !!eventPayload.subscriptionDetails?.paymentDetails,
+          subscriptionDetailsKeys: eventPayload.subscriptionDetails
+            ? Object.keys(eventPayload.subscriptionDetails)
+            : [],
         }
       );
 

@@ -86,6 +86,14 @@ class SubscriptionDetailsService {
           membershipCategoryFromProfessional;
       }
 
+      // Enforce payment frequency rule: Credit Card = Annually, Others = Monthly
+      const {
+        enforcePaymentFrequencyRule,
+      } = require("../helpers/payment.frequency.helper.js");
+      createData.subscriptionDetails = enforcePaymentFrequencyRule(
+        createData.subscriptionDetails
+      );
+
       // Ensure submissionDate is set when subscription details are created
       if (!createData.subscriptionDetails.submissionDate) {
         createData.subscriptionDetails.submissionDate = new Date();
@@ -305,6 +313,16 @@ class SubscriptionDetailsService {
       if (membershipNumber) {
         console.warn(
           "⚠️ [SUBSCRIPTION_SERVICE] Ignoring membershipNumber in update - membership numbers are generated during approval"
+        );
+      }
+
+      // Enforce payment frequency rule if subscriptionDetails are being updated
+      if (safeUpdateData.subscriptionDetails) {
+        const {
+          enforcePaymentFrequencyRule,
+        } = require("../helpers/payment.frequency.helper.js");
+        safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
+          safeUpdateData.subscriptionDetails
         );
       }
 

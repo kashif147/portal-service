@@ -14,7 +14,7 @@ const SubscriptionSchema = new mongoose.Schema(
       required: false,
       default: null,
     }, // Azure B2C ID
-    membershipNumber: { type: String, unique: true, sparse: true }, // Auto-generated membership number
+    // membershipNumber: { type: String, unique: true, sparse: true }, // Auto-generated membership number
 
     subscriptionDetails: {
       paymentType: {
