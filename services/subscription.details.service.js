@@ -3,6 +3,8 @@ const personalDetailsHandler = require("../handlers/personal.details.handler");
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
 const { APPLICATION_STATUS } = require("../constants/enums");
 const { AppError } = require("../errors/AppError");
+const ApplicationStatusUpdateListener = require("../rabbitMQ/listeners/application.status.submitted.listener.js");
+const mongoose = require("mongoose");
 
 /**
  * Subscription Details Service Layer
@@ -15,9 +17,16 @@ class SubscriptionDetailsService {
    * @param {string} applicationId - Application ID
    * @param {string} userId - User ID
    * @param {string} userType - User type (CRM/PORTAL)
+   * @param {string} tenantId - Tenant ID
    * @returns {Promise<Object>} Created subscription details
    */
-  async createSubscriptionDetails(data, applicationId, userId, userType) {
+  async createSubscriptionDetails(
+    data,
+    applicationId,
+    userId,
+    userType,
+    tenantId
+  ) {
     try {
       if (!data) {
         throw AppError.badRequest("Subscription details data is required");
@@ -77,13 +86,149 @@ class SubscriptionDetailsService {
           membershipCategoryFromProfessional;
       }
 
+      // Ensure submissionDate is set when subscription details are created
+      if (!createData.subscriptionDetails.submissionDate) {
+        createData.subscriptionDetails.submissionDate = new Date();
+      }
+
       const result = await subscriptionDetailsHandler.create(createData);
 
-      // Update application status to submitted (complete application)
-      await personalDetailsHandler.updateApplicationStatus(
-        applicationId,
-        APPLICATION_STATUS.SUBMITTED
-      );
+      // Get membership category from subscription details or professional details
+      let membershipCategoryId =
+        result?.subscriptionDetails?.membershipCategory ||
+        professionalDetails?.professionalDetails?.membershipCategory;
+
+      // Helper function to check if a value is a MongoDB ObjectId
+      const isObjectId = (value) => {
+        if (!value) return false;
+        if (typeof value !== "string") return false;
+        return mongoose.Types.ObjectId.isValid(value) && value.length === 24;
+      };
+
+      // If membership category is an ObjectId, fetch the lookup name
+      let membershipCategoryName = membershipCategoryId;
+      if (isObjectId(membershipCategoryId)) {
+        try {
+          // Fetch lookup from database
+          // Try to get existing model or create schema if needed
+          let Lookup;
+          try {
+            Lookup = mongoose.model("Lookup");
+          } catch (modelError) {
+            // Model doesn't exist, create it
+            const lookupSchema = new mongoose.Schema(
+              {
+                code: { type: String, required: true },
+                lookupname: { type: String, required: true },
+                DisplayName: { type: String },
+                Parentlookupid: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "Lookup",
+                  default: null,
+                },
+                lookuptypeId: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "LookupType",
+                  required: true,
+                },
+                isdeleted: { type: Boolean, default: false },
+                isactive: { type: Boolean, default: true },
+                userid: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "User",
+                  required: true,
+                },
+              },
+              { timestamps: true }
+            );
+            Lookup = mongoose.model("Lookup", lookupSchema);
+          }
+
+          const lookup = await Lookup.findById(membershipCategoryId);
+          if (lookup && lookup.lookupname) {
+            membershipCategoryName = lookup.lookupname;
+            console.log(
+              `📋 [SUBSCRIPTION_SERVICE] Resolved membership category ID ${membershipCategoryId} to name: ${membershipCategoryName}`
+            );
+          } else {
+            console.warn(
+              `⚠️ [SUBSCRIPTION_SERVICE] Lookup not found for ID: ${membershipCategoryId}`
+            );
+          }
+        } catch (lookupError) {
+          console.error(
+            `❌ [SUBSCRIPTION_SERVICE] Error fetching lookup for ID ${membershipCategoryId}:`,
+            lookupError.message
+          );
+          // Continue with ID as fallback - won't match "Undergraduate Student" but won't break
+        }
+      }
+
+      // Check if membership category is "Undergraduate Student"
+      const isUndergraduateStudent =
+        membershipCategoryName &&
+        membershipCategoryName.toLowerCase() === "undergraduate student";
+
+      // Update application status based on membership category:
+      // - Undergraduate Student: Change to "submitted" immediately (no payment required)
+      // - Other categories: Keep as "in-progress" until payment is received
+      let updatedPersonalDetails;
+      if (isUndergraduateStudent) {
+        console.log(
+          "📝 [SUBSCRIPTION_SERVICE] Undergraduate Student - updating status to submitted"
+        );
+        updatedPersonalDetails =
+          await personalDetailsHandler.updateApplicationStatus(
+            applicationId,
+            APPLICATION_STATUS.SUBMITTED
+          );
+      } else {
+        console.log(
+          "ℹ️ [SUBSCRIPTION_SERVICE] Non-Undergraduate Student - keeping status as in-progress until payment is received"
+        );
+        // Get current personal details without changing status
+        updatedPersonalDetails =
+          await personalDetailsHandler.getApplicationById(applicationId);
+      }
+
+      // For Undergraduate Students, trigger the same event flow as payment processing
+      // This ensures all events go through the same unified handler
+      if (isUndergraduateStudent && tenantId) {
+        try {
+          console.log(
+            "📤 [SUBSCRIPTION_SERVICE] Triggering profile service event for Undergraduate Student (no payment required)"
+          );
+
+          // Use the same handler as payment processing, but with no payment data
+          await ApplicationStatusUpdateListener.handleApplicationStatusUpdate({
+            applicationId: applicationId,
+            status: APPLICATION_STATUS.SUBMITTED,
+            paymentIntentId: null, // No payment for undergraduate students
+            amount: null,
+            currency: null,
+            tenantId: tenantId,
+          });
+
+          console.log(
+            "✅ [SUBSCRIPTION_SERVICE] Profile service event triggered successfully for Undergraduate Student"
+          );
+        } catch (eventError) {
+          console.error(
+            "❌ [SUBSCRIPTION_SERVICE] Failed to trigger profile service event:",
+            eventError
+          );
+          // Don't throw - subscription details were created successfully
+          // Event publishing failure shouldn't block the response
+        }
+      } else if (!isUndergraduateStudent) {
+        console.log(
+          "ℹ️ [SUBSCRIPTION_SERVICE] Membership category is not 'Undergraduate Student', event will be published when payment is processed"
+        );
+      } else if (!tenantId) {
+        console.warn(
+          "⚠️ [SUBSCRIPTION_SERVICE] tenantId not provided, skipping RabbitMQ event publication"
+        );
+      }
 
       return result;
     } catch (error) {

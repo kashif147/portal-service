@@ -36,12 +36,16 @@ exports.createSubscriptionDetails = async (req, res, next) => {
     // Get application ID from URL parameters
     const applicationId = req.params.applicationId;
 
+    // Get tenantId from request context
+    const tenantId = req.tenantId || req.ctx?.tenantId;
+
     // Create new subscription details
     const result = await subscriptionDetailsService.createSubscriptionDetails(
       validatedData,
       applicationId,
       userId,
-      userType
+      userType,
+      tenantId
     );
 
     return res.success(result);

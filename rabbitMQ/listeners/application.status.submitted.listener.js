@@ -82,75 +82,92 @@ class ApplicationStatusUpdateListener {
       );
 
       // 3. Record payment information in subscription details (single source of truth)
+      // Only update payment details if payment information is provided
       let subscriptionDetails = await SubscriptionDetails.findOne({
         applicationId: applicationId,
       });
 
+      const hasPaymentInfo = paymentIntentId && amount && currency;
+
       if (subscriptionDetails) {
-        // Update existing subscription details with payment information
-        console.log(
-          "📝 [STATUS_UPDATE_LISTENER] Updating existing subscription details:",
-          {
-            subscriptionId: subscriptionDetails._id,
-            applicationId: subscriptionDetails.applicationId,
-            currentPaymentDetails: subscriptionDetails.paymentDetails,
-          }
-        );
+        if (hasPaymentInfo) {
+          // Update existing subscription details with payment information
+          console.log(
+            "📝 [STATUS_UPDATE_LISTENER] Updating existing subscription details with payment information:",
+            {
+              subscriptionId: subscriptionDetails._id,
+              applicationId: subscriptionDetails.applicationId,
+              currentPaymentDetails: subscriptionDetails.paymentDetails,
+            }
+          );
 
-        const subscriptionUpdateData = {
-          paymentDetails: {
-            paymentIntentId: paymentIntentId,
-            amount: amount,
-            currency: currency,
-            status: status,
-            updatedAt: new Date(),
-          },
-        };
+          const subscriptionUpdateData = {
+            paymentDetails: {
+              paymentIntentId: paymentIntentId,
+              amount: amount,
+              currency: currency,
+              status: status,
+              updatedAt: new Date(),
+            },
+          };
 
-        subscriptionDetails = await SubscriptionDetails.findByIdAndUpdate(
-          subscriptionDetails._id,
-          subscriptionUpdateData,
-          { new: true }
-        );
+          subscriptionDetails = await SubscriptionDetails.findByIdAndUpdate(
+            subscriptionDetails._id,
+            subscriptionUpdateData,
+            { new: true }
+          );
 
-        console.log(
-          "✅ [STATUS_UPDATE_LISTENER] Payment information recorded in subscription details:",
-          {
-            subscriptionId: subscriptionDetails._id,
-            paymentIntentId:
-              subscriptionDetails.paymentDetails?.paymentIntentId,
-            amount: subscriptionDetails.paymentDetails?.amount,
-            currency: subscriptionDetails.paymentDetails?.currency,
-          }
-        );
+          console.log(
+            "✅ [STATUS_UPDATE_LISTENER] Payment information recorded in subscription details:",
+            {
+              subscriptionId: subscriptionDetails._id,
+              paymentIntentId:
+                subscriptionDetails.paymentDetails?.paymentIntentId,
+              amount: subscriptionDetails.paymentDetails?.amount,
+              currency: subscriptionDetails.paymentDetails?.currency,
+            }
+          );
+        } else {
+          // No payment info (e.g., Undergraduate Student) - keep existing subscription details as-is
+          console.log(
+            "ℹ️ [STATUS_UPDATE_LISTENER] No payment information provided, keeping existing subscription details unchanged"
+          );
+        }
       } else {
         // Create subscription details if they don't exist
-        console.log(
-          "⚠️ [STATUS_UPDATE_LISTENER] Subscription details not found, creating with payment information"
-        );
+        if (hasPaymentInfo) {
+          console.log(
+            "⚠️ [STATUS_UPDATE_LISTENER] Subscription details not found, creating with payment information"
+          );
 
-        subscriptionDetails = await SubscriptionDetails.create({
-          applicationId: applicationId,
-          userId: personalDetails.userId,
-          paymentDetails: {
-            paymentIntentId: paymentIntentId,
-            amount: amount,
-            currency: currency,
-            status: status,
-            updatedAt: new Date(),
-          },
-          subscriptionDetails: {
-            // Defaults will be applied from schema
-          },
-          meta: {
-            createdBy: personalDetails.userId,
-            userType: "PORTAL",
-          },
-        });
+          subscriptionDetails = await SubscriptionDetails.create({
+            applicationId: applicationId,
+            userId: personalDetails.userId,
+            paymentDetails: {
+              paymentIntentId: paymentIntentId,
+              amount: amount,
+              currency: currency,
+              status: status,
+              updatedAt: new Date(),
+            },
+            subscriptionDetails: {
+              // Defaults will be applied from schema
+            },
+            meta: {
+              createdBy: personalDetails.userId,
+              userType: "PORTAL",
+            },
+          });
 
-        console.log(
-          "✅ [STATUS_UPDATE_LISTENER] Subscription details created with payment information"
-        );
+          console.log(
+            "✅ [STATUS_UPDATE_LISTENER] Subscription details created with payment information"
+          );
+        } else {
+          console.warn(
+            "⚠️ [STATUS_UPDATE_LISTENER] Subscription details not found and no payment information provided - subscription details should have been created earlier"
+          );
+          // Subscription details should exist at this point, but if not, we'll continue without them
+        }
       }
 
       // 4. Get all related data for profile service event
