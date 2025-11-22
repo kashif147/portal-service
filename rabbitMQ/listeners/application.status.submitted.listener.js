@@ -34,8 +34,14 @@ class ApplicationStatusUpdateListener {
       } = data;
 
       // Only process events when payment is successfully captured
-      // Status should be "paid" or similar successful payment status
-      const PAYMENT_CAPTURED_STATUSES = ["paid", "succeeded", "completed"];
+      // Status can be "submitted" (from payment service), "paid", "succeeded", or "completed"
+      // "submitted" means payment was successful and application should be moved to submitted status
+      const PAYMENT_CAPTURED_STATUSES = [
+        "submitted",
+        "paid",
+        "succeeded",
+        "completed",
+      ];
       const isPaymentCaptured = PAYMENT_CAPTURED_STATUSES.includes(
         status?.toLowerCase()
       );
@@ -51,6 +57,17 @@ class ApplicationStatusUpdateListener {
         );
         return; // Don't publish event until payment is captured
       }
+
+      console.log(
+        "✅ [STATUS_UPDATE_LISTENER] Payment captured, processing event:",
+        {
+          applicationId,
+          status,
+          hasPaymentIntentId: !!paymentIntentId,
+          hasAmount: !!amount,
+          hasCurrency: !!currency,
+        }
+      );
 
       // Validate required payment data for captured payments
       const hasPaymentInfo = paymentIntentId && amount && currency;
@@ -87,10 +104,24 @@ class ApplicationStatusUpdateListener {
         userId: personalDetails.userId,
       });
 
-      // 2. Update application status
+      // 2. Update application status to "submitted" when payment is captured
+      // Ensure we use the correct status value from enum
+      const { APPLICATION_STATUS } = require("../../constants/enums.js");
+      const targetStatus =
+        status?.toLowerCase() === "submitted"
+          ? APPLICATION_STATUS.SUBMITTED
+          : status;
+
       const updateData = {
-        applicationStatus: status,
+        applicationStatus: targetStatus,
       };
+
+      console.log("📝 [STATUS_UPDATE_LISTENER] Updating application status:", {
+        applicationId,
+        currentStatus: personalDetails.applicationStatus,
+        newStatus: targetStatus,
+        statusFromEvent: status,
+      });
 
       const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
         personalDetails._id,
@@ -98,10 +129,17 @@ class ApplicationStatusUpdateListener {
         { new: true }
       );
 
-      console.log(
-        "✅ [STATUS_UPDATE_LISTENER] Application status updated to:",
-        status
-      );
+      if (!updatedPersonalDetails) {
+        throw new Error(
+          `Failed to update application status. Application ID: ${applicationId}`
+        );
+      }
+
+      console.log("✅ [STATUS_UPDATE_LISTENER] Application status updated:", {
+        applicationId,
+        previousStatus: personalDetails.applicationStatus,
+        newStatus: updatedPersonalDetails.applicationStatus,
+      });
 
       // 3. Record payment information in subscription details (single source of truth)
       // First, query for existing subscription details

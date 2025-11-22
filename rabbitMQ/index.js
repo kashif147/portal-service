@@ -41,7 +41,9 @@ async function setupConsumers() {
     console.log("🔧 [SETUP] Creating payment queue...");
     console.log("   Queue:", PAYMENT_QUEUE);
     console.log("   Exchange: accounts.events");
-    console.log("   Routing Key: application.status.updated");
+    console.log(
+      "   Routing Keys: application.status.updated, application.status.submitted"
+    );
 
     // Create queue with DLQ support
     await consumer.createQueue(PAYMENT_QUEUE, {
@@ -49,20 +51,34 @@ async function setupConsumers() {
       messageTtl: 3600000, // 1 hour
     });
 
-    // Bind to exchange
+    // Bind to exchange - listen for both routing keys
+    // account-service publishes "application.status.submitted"
+    // but we also support "application.status.updated" for backward compatibility
     await consumer.bindQueue(PAYMENT_QUEUE, "accounts.events", [
       "application.status.updated",
+      "application.status.submitted",
     ]);
 
-    // Register handler
+    // Register handler for both routing keys
+    const handlePaymentEvent = async (payload, context) => {
+      const { data } = payload;
+      console.log(
+        "📥 [PAYMENT_EVENT] Received payment event:",
+        {
+          routingKey: context.routingKey,
+          applicationId: data?.applicationId,
+          status: data?.status,
+        }
+      );
+      await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
+        data
+      );
+    };
+
+    consumer.registerHandler("application.status.updated", handlePaymentEvent);
     consumer.registerHandler(
-      "application.status.updated",
-      async (payload, context) => {
-        const { data } = payload;
-        await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
-          data
-        );
-      }
+      "application.status.submitted",
+      handlePaymentEvent
     );
 
     // Start consuming
