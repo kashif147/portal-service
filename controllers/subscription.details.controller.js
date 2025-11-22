@@ -76,6 +76,14 @@ exports.getSubscriptionDetails = async (req, res, next) => {
         userId,
         userType
       );
+
+    if (!subscriptionDetails) {
+      return res.status(200).json({
+        data: null,
+        message: "Not found",
+      });
+    }
+
     return res.success(subscriptionDetails);
   } catch (error) {
     console.error(
@@ -83,7 +91,10 @@ exports.getSubscriptionDetails = async (req, res, next) => {
       error
     );
     if (error.message === "Subscription details not found") {
-      return next(AppError.notFound("Subscription details not found"));
+      return res.status(200).json({
+        data: null,
+        message: "Not found",
+      });
     }
     return next(error);
   }

@@ -145,6 +145,14 @@ exports.getPersonalDetails = async (req, res, next) => {
       userId,
       userType
     );
+    
+    if (!personalDetails) {
+      return res.status(200).json({
+        data: null,
+        message: "Not found"
+      });
+    }
+    
     return res.success(personalDetails);
   } catch (error) {
     console.error(
@@ -152,7 +160,10 @@ exports.getPersonalDetails = async (req, res, next) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return next(AppError.notFound("Personal details not found"));
+      return res.status(200).json({
+        data: null,
+        message: "Not found"
+      });
     }
     return next(error);
   }
@@ -263,9 +274,10 @@ exports.getMyPersonalDetails = async (req, res, next) => {
 
     if (!personalDetails) {
       console.log("No personal details found for user:", userId);
-      return next(
-        AppError.notFound("Personal details not found for this user")
-      );
+      return res.status(200).json({
+        data: null,
+        message: "Not found"
+      });
     }
 
     console.log("=== getMyPersonalDetails SUCCESS ===");
@@ -277,7 +289,10 @@ exports.getMyPersonalDetails = async (req, res, next) => {
     );
     console.error("Error stack:", error.stack);
     if (error.message === "Personal details not found") {
-      return next(AppError.notFound("Personal details not found"));
+      return res.status(200).json({
+        data: null,
+        message: "Not found"
+      });
     }
     return next(error);
   }
@@ -305,7 +320,10 @@ exports.getApplicationStatus = async (req, res, next) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return next(AppError.notFound("Application not found"));
+      return res.status(200).json({
+        data: null,
+        message: "Not found"
+      });
     }
     return next(error);
   }
