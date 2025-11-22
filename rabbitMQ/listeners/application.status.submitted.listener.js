@@ -257,12 +257,42 @@ class ApplicationStatusUpdateListener {
         );
       }
 
+      // Verify that subscriptionDetails.subscriptionDetails has data
+      const hasSubscriptionDetailsData =
+        subscriptionDetails.subscriptionDetails &&
+        Object.keys(subscriptionDetails.subscriptionDetails).length > 0;
+
+      if (!hasSubscriptionDetailsData) {
+        console.error(
+          "❌ [STATUS_UPDATE_LISTENER] Subscription details document exists but nested subscriptionDetails field is empty:",
+          {
+            subscriptionId: subscriptionDetails._id,
+            applicationId: subscriptionDetails.applicationId,
+            subscriptionDetailsKeys: subscriptionDetails.subscriptionDetails
+              ? Object.keys(subscriptionDetails.subscriptionDetails)
+              : [],
+            subscriptionDetailsValue: subscriptionDetails.subscriptionDetails,
+          }
+        );
+        throw new Error(
+          `Subscription details must have populated subscriptionDetails field before publishing profile service event. Application ID: ${applicationId}`
+        );
+      }
+
       console.log(
         "✅ [STATUS_UPDATE_LISTENER] Verified subscription details from database:",
         {
           subscriptionId: subscriptionDetails._id,
           applicationId: subscriptionDetails.applicationId,
           hasPaymentDetails: !!subscriptionDetails.paymentDetails,
+          hasSubscriptionDetailsData: hasSubscriptionDetailsData,
+          subscriptionDetailsKeys: subscriptionDetails.subscriptionDetails
+            ? Object.keys(subscriptionDetails.subscriptionDetails)
+            : [],
+          subscriptionDetailsPaymentType:
+            subscriptionDetails.subscriptionDetails?.paymentType,
+          subscriptionDetailsPaymentFrequency:
+            subscriptionDetails.subscriptionDetails?.paymentFrequency,
         }
       );
 
@@ -305,6 +335,16 @@ class ApplicationStatusUpdateListener {
           subscriptionDetailsKeys: eventPayload.subscriptionDetails
             ? Object.keys(eventPayload.subscriptionDetails)
             : [],
+          hasNestedSubscriptionDetails: !!eventPayload.subscriptionDetails?.subscriptionDetails,
+          nestedSubscriptionDetailsType: eventPayload.subscriptionDetails?.subscriptionDetails
+            ? typeof eventPayload.subscriptionDetails.subscriptionDetails
+            : "null",
+          nestedSubscriptionDetailsKeys: eventPayload.subscriptionDetails?.subscriptionDetails
+            ? Object.keys(eventPayload.subscriptionDetails.subscriptionDetails)
+            : [],
+          nestedSubscriptionDetailsFull: eventPayload.subscriptionDetails?.subscriptionDetails
+            ? JSON.stringify(eventPayload.subscriptionDetails.subscriptionDetails, null, 2)
+            : "null",
         }
       );
 
