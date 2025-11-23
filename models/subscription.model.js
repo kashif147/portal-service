@@ -33,6 +33,7 @@ const SubscriptionSchema = new mongoose.Schema(
       secondarySection: { type: String, allowNull: true },
       otherSecondarySection: { type: String, allowNull: true },
       incomeProtectionScheme: { type: Boolean, default: false },
+      exclusiveDiscountsAndOffers: { type: Boolean, default: false },
       inmoRewards: { type: Boolean, default: false },
       paymentFrequency: {
         type: String,
