@@ -105,12 +105,13 @@ class ApplicationStatusUpdateListener {
       });
 
       // 2. Update application status to "submitted" when payment is captured
-      // Ensure we use the correct status value from enum
+      // Ensure we use the correct status value from enum and normalize to lowercase
       const { APPLICATION_STATUS } = require("../../constants/enums.js");
+      const normalizedStatus = status?.toLowerCase();
       const targetStatus =
-        status?.toLowerCase() === "submitted"
+        normalizedStatus === "submitted"
           ? APPLICATION_STATUS.SUBMITTED
-          : status;
+          : normalizedStatus;
 
       const updateData = {
         applicationStatus: targetStatus,
@@ -335,15 +336,23 @@ class ApplicationStatusUpdateListener {
           subscriptionDetailsKeys: eventPayload.subscriptionDetails
             ? Object.keys(eventPayload.subscriptionDetails)
             : [],
-          hasNestedSubscriptionDetails: !!eventPayload.subscriptionDetails?.subscriptionDetails,
-          nestedSubscriptionDetailsType: eventPayload.subscriptionDetails?.subscriptionDetails
+          hasNestedSubscriptionDetails:
+            !!eventPayload.subscriptionDetails?.subscriptionDetails,
+          nestedSubscriptionDetailsType: eventPayload.subscriptionDetails
+            ?.subscriptionDetails
             ? typeof eventPayload.subscriptionDetails.subscriptionDetails
             : "null",
-          nestedSubscriptionDetailsKeys: eventPayload.subscriptionDetails?.subscriptionDetails
+          nestedSubscriptionDetailsKeys: eventPayload.subscriptionDetails
+            ?.subscriptionDetails
             ? Object.keys(eventPayload.subscriptionDetails.subscriptionDetails)
             : [],
-          nestedSubscriptionDetailsFull: eventPayload.subscriptionDetails?.subscriptionDetails
-            ? JSON.stringify(eventPayload.subscriptionDetails.subscriptionDetails, null, 2)
+          nestedSubscriptionDetailsFull: eventPayload.subscriptionDetails
+            ?.subscriptionDetails
+            ? JSON.stringify(
+                eventPayload.subscriptionDetails.subscriptionDetails,
+                null,
+                2
+              )
             : "null",
         }
       );
