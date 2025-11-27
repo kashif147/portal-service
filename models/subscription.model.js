@@ -25,6 +25,7 @@ const SubscriptionSchema = new mongoose.Schema(
       payrollNo: { type: String, allowNull: true },
       membershipStatus: { type: String, allowNull: true },
       otherIrishTradeUnion: { type: Boolean, default: false },
+      otherIrishTradeUnionName: { type: String, allowNull: true },
       otherScheme: { type: Boolean, default: false },
       recuritedBy: { type: String, allowNull: true },
       recuritedByMembershipNo: { type: String, allowNull: true },
