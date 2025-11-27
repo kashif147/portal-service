@@ -26,6 +26,7 @@ const ProfessionalSchema = new mongoose.Schema(
       studyLocation: { type: String, allowNull: true },
       startDate: { type: Date, allowNull: true },
       graduationDate: { type: Date, allowNull: true },
+      discipline: { type: String, allowNull: true },
     },
 
     meta: {

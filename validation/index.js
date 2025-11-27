@@ -112,6 +112,7 @@ module.exports.professional_details_create = Joi.object({
     startDate: Joi.date().iso().optional().default(null),
     graduationDate: Joi.date().iso().optional().default(null),
     otherGraduationDate: Joi.date().iso().optional().default(null),
+    discipline: Joi.string().optional().default(null),
     submissionDate: Joi.date().iso().optional().default(Date.now),
   }),
 });
@@ -135,6 +136,7 @@ module.exports.professional_details_update = Joi.object({
     startDate: Joi.date().iso().optional().default(null),
     graduationDate: Joi.date().iso().optional().default(null),
     otherGraduationDate: Joi.date().iso().optional().default(null),
+    discipline: Joi.string().optional().default(null),
   }),
 });
 
