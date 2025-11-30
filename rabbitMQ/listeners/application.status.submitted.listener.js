@@ -105,13 +105,10 @@ class ApplicationStatusUpdateListener {
       });
 
       // 2. Update application status to "submitted" when payment is captured
-      // Ensure we use the correct status value from enum and normalize to lowercase
+      // All payment-captured statuses ("submitted", "paid", "succeeded", "completed")
+      // should be converted to APPLICATION_STATUS.SUBMITTED enum value
       const { APPLICATION_STATUS } = require("../../constants/enums.js");
-      const normalizedStatus = status?.toLowerCase();
-      const targetStatus =
-        normalizedStatus === "submitted"
-          ? APPLICATION_STATUS.SUBMITTED
-          : normalizedStatus;
+      const targetStatus = APPLICATION_STATUS.SUBMITTED;
 
       const updateData = {
         applicationStatus: targetStatus,
