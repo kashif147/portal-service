@@ -13,6 +13,7 @@ const { PROFILE_EVENTS } = require("./events/profile.application.create.js");
 // Import the listeners
 const ApplicationStatusUpdateListener = require("./listeners/application.status.submitted.listener.js");
 const ApplicationApprovalListener = require("./listeners/application.approval.listener.js");
+const ApplicationRejectionListener = require("./listeners/application.rejection.listener.js");
 
 // Import event publisher utility
 const { publishDomainEvent } = require("./utils/eventPublisher.js");
@@ -86,12 +87,14 @@ async function setupConsumers() {
     await consumer.consume(PAYMENT_QUEUE, { prefetch: 10 });
     console.log("✅ Payment service events consumer ready:", PAYMENT_QUEUE);
 
-    // Application approval events queue (application.events exchange)
+    // Application approval/rejection events queue (application.events exchange)
     const APPROVAL_QUEUE = "portal.application.approval.events";
-    console.log("🔧 [SETUP] Creating application approval queue...");
+    console.log("🔧 [SETUP] Creating application approval/rejection queue...");
     console.log("   Queue:", APPROVAL_QUEUE);
     console.log("   Exchange: application.events");
-    console.log("   Routing Key: applications.review.approved.v1");
+    console.log(
+      "   Routing Keys: applications.review.approved.v1, applications.review.rejected.v1"
+    );
 
     await consumer.createQueue(APPROVAL_QUEUE, {
       durable: true,
@@ -100,6 +103,7 @@ async function setupConsumers() {
 
     await consumer.bindQueue(APPROVAL_QUEUE, "application.events", [
       "applications.review.approved.v1",
+      "applications.review.rejected.v1",
     ]);
 
     consumer.registerHandler(
@@ -118,8 +122,27 @@ async function setupConsumers() {
       }
     );
 
+    consumer.registerHandler(
+      "applications.review.rejected.v1",
+      async (payload, context) => {
+        const { data } = payload;
+        console.log(
+          "📥 [REJECTION_EVENT] Received application rejection event:",
+          {
+            routingKey: context.routingKey,
+            applicationId: data?.applicationId,
+            reason: data?.reason,
+          }
+        );
+        await ApplicationRejectionListener.handleApplicationRejected(data);
+      }
+    );
+
     await consumer.consume(APPROVAL_QUEUE, { prefetch: 10 });
-    console.log("✅ Application approval events consumer ready:", APPROVAL_QUEUE);
+    console.log(
+      "✅ Application approval/rejection events consumer ready:",
+      APPROVAL_QUEUE
+    );
 
     console.log("✅ All consumers set up successfully");
   } catch (error) {
