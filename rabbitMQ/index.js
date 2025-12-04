@@ -151,7 +151,7 @@ async function setupConsumers() {
     const MEMBERSHIP_QUEUE = "portal.membership.events";
     console.log("🔧 [SETUP] Creating membership queue...");
     console.log("   Queue:", MEMBERSHIP_QUEUE);
-    console.log("   Exchange: membership.events");
+    console.log("   Exchange: application.events");
     console.log(
       "   Routing Key: members.professionaldetails.worklocation.updated.v1"
     );
@@ -161,7 +161,10 @@ async function setupConsumers() {
       messageTtl: 3600000, // 1 hour
     });
 
-    await consumer.bindQueue(MEMBERSHIP_QUEUE, "membership.events", [
+    // NOTE: Profile-service currently publishes this event to the
+    // "application.events" exchange (see profile-service logs),
+    // so we bind to that exchange here.
+    await consumer.bindQueue(MEMBERSHIP_QUEUE, "application.events", [
       "members.professionaldetails.worklocation.updated.v1",
     ]);
 
