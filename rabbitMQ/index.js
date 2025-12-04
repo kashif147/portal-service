@@ -14,6 +14,9 @@ const { PROFILE_EVENTS } = require("./events/profile.application.create.js");
 const ApplicationStatusUpdateListener = require("./listeners/application.status.submitted.listener.js");
 const ApplicationApprovalListener = require("./listeners/application.approval.listener.js");
 const ApplicationRejectionListener = require("./listeners/application.rejection.listener.js");
+const {
+  handleProfessionalWorkLocationUpdated,
+} = require("./listeners/professional.details.listener.js");
 
 // Import event publisher utility
 const { publishDomainEvent } = require("./utils/eventPublisher.js");
@@ -143,6 +146,43 @@ async function setupConsumers() {
       "✅ Application approval/rejection events consumer ready:",
       APPROVAL_QUEUE
     );
+
+    // Membership events queue (membership.events exchange) for professional details updates
+    const MEMBERSHIP_QUEUE = "portal.membership.events";
+    console.log("🔧 [SETUP] Creating membership queue...");
+    console.log("   Queue:", MEMBERSHIP_QUEUE);
+    console.log("   Exchange: membership.events");
+    console.log(
+      "   Routing Key: members.professionaldetails.worklocation.updated.v1"
+    );
+
+    await consumer.createQueue(MEMBERSHIP_QUEUE, {
+      durable: true,
+      messageTtl: 3600000, // 1 hour
+    });
+
+    await consumer.bindQueue(MEMBERSHIP_QUEUE, "membership.events", [
+      "members.professionaldetails.worklocation.updated.v1",
+    ]);
+
+    consumer.registerHandler(
+      "members.professionaldetails.worklocation.updated.v1",
+      async (payload, context) => {
+        const data = payload?.data || payload;
+        console.log(
+          "📥 [MEMBERSHIP_EVENT] Received professionalDetails workLocation update:",
+          {
+            routingKey: context.routingKey,
+            userId: data?.userId,
+            workLocation: data?.workLocation,
+          }
+        );
+        await handleProfessionalWorkLocationUpdated(data);
+      }
+    );
+
+    await consumer.consume(MEMBERSHIP_QUEUE, { prefetch: 10 });
+    console.log("✅ Membership events consumer ready:", MEMBERSHIP_QUEUE);
 
     console.log("✅ All consumers set up successfully");
   } catch (error) {
