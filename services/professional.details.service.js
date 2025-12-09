@@ -83,6 +83,10 @@ class ProfessionalDetailsService {
 
       const professionalDetails = await professionalDetailsHandler.getApplicationById(applicationId);
       
+      if (!professionalDetails) {
+        throw AppError.notFound("Professional details not found");
+      }
+      
       // Validate user permissions for PORTAL users
       if (userType !== "CRM") {
         if (!professionalDetails.userId || professionalDetails.userId.toString() !== userId?.toString()) {
@@ -98,6 +102,10 @@ class ProfessionalDetailsService {
         "ProfessionalDetailsService [getProfessionalDetails] Error:",
         error
       );
+      // Convert handler's generic error to AppError if needed
+      if (error.message === "Professional details not found") {
+        throw AppError.notFound("Professional details not found");
+      }
       throw error;
     }
   }
