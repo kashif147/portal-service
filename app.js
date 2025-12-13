@@ -118,7 +118,7 @@ app.use(cookieParser());
 
 app.use(loggerMiddleware);
 
-app.use(corsMiddleware);
+// app.use(corsMiddleware);
 
 app.use(
   session({
@@ -184,7 +184,7 @@ app.use(function (req, res, next) {
   next(createError(404));
 });
 
-app.use(corsErrorHandler);
+// app.use(corsErrorHandler);
 app.use(responseMiddleware.errorHandler);
 
 module.exports = app;
