@@ -2,15 +2,14 @@ version: "3.9"
 
 services:
   portal-service:
-    build: .
     container_name: portal-service
+    build: .
     ports:
       - "4001:4001"
     restart: always
     networks:
-      - shared-net
+      - gateway_app-net
 
 networks:
-  shared-net:
+  gateway_app-net:
     external: true
-    name: gateway_app-net
