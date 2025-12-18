@@ -59,6 +59,9 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 
 var app = express();
 
+// Disable ETag generation to prevent 304 responses
+app.set("etag", false);
+
 // Trust proxy for secure cookies
 app.set("trust proxy", 1);
 
@@ -118,7 +121,7 @@ app.use(cookieParser());
 
 app.use(loggerMiddleware);
 
-app.use(corsMiddleware);
+// app.use(corsMiddleware);
 
 app.use(
   session({
@@ -184,7 +187,7 @@ app.use(function (req, res, next) {
   next(createError(404));
 });
 
-app.use(corsErrorHandler);
+// app.use(corsErrorHandler);
 app.use(responseMiddleware.errorHandler);
 
 module.exports = app;
