@@ -59,6 +59,9 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 
 var app = express();
 
+// Disable ETag generation to prevent 304 responses
+app.set("etag", false);
+
 // Trust proxy for secure cookies
 app.set("trust proxy", 1);
 
