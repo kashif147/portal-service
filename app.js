@@ -6,7 +6,7 @@ if (process.env.NODE_ENV === "staging") {
   require("dotenv").config({ path: ".env.development" });
 }
 // Production uses Azure Application Settings
-//
+
 // Suppress Application Insights warnings if not configured
 // Azure App Service auto-injects Application Insights, but warnings appear if key is missing
 if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING && process.env.APPLICATIONINSIGHTS_CONNECTION_STRING.trim() === "") {
@@ -58,6 +58,9 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 // require("message-bus/src/index");
 
 var app = express();
+
+// Disable ETag generation to prevent 304 responses
+app.set("etag", false);
 
 // Trust proxy for secure cookies
 app.set("trust proxy", 1);
@@ -118,7 +121,7 @@ app.use(cookieParser());
 
 app.use(loggerMiddleware);
 
-app.use(corsMiddleware);
+// app.use(corsMiddleware);
 
 app.use(
   session({
@@ -184,7 +187,7 @@ app.use(function (req, res, next) {
   next(createError(404));
 });
 
-app.use(corsErrorHandler);
+// app.use(corsErrorHandler);
 app.use(responseMiddleware.errorHandler);
 
 module.exports = app;
