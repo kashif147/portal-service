@@ -19,9 +19,9 @@ jobs:
       - name: Sync code
         run: |
           rsync -avz --delete \
+          --exclude '.env*' \
           -e "ssh -o StrictHostKeyChecking=no" ./ \
           ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/home/deploy/membership-platform/portal-service/
-
       - name: Build and restart portal-service
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'

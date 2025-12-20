@@ -1,9 +1,10 @@
-version: "3.9"
-
 services:
   portal-service:
     container_name: portal-service
     build: .
+    env_file:
+      - /home/deploy/config/.env.common
+      - .env.staging
     ports:
       - "4001:4001"
     restart: always
