@@ -9,33 +9,48 @@ if (process.env.NODE_ENV === "staging") {
 
 // Suppress Application Insights warnings if not configured
 // Azure App Service auto-injects Application Insights, but warnings appear if key is missing
-if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING && process.env.APPLICATIONINSIGHTS_CONNECTION_STRING.trim() === "") {
+if (
+  process.env.APPLICATIONINSIGHTS_CONNECTION_STRING &&
+  process.env.APPLICATIONINSIGHTS_CONNECTION_STRING.trim() === ""
+) {
   process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = undefined;
 }
-if (!process.env.APPINSIGHTS_INSTRUMENTATIONKEY || process.env.APPINSIGHTS_INSTRUMENTATIONKEY.trim() === "") {
+if (
+  !process.env.APPINSIGHTS_INSTRUMENTATIONKEY ||
+  process.env.APPINSIGHTS_INSTRUMENTATIONKEY.trim() === ""
+) {
   const originalStderrWrite = process.stderr.write.bind(process.stderr);
-  process.stderr.write = function(chunk, encoding, callback) {
+  process.stderr.write = function (chunk, encoding, callback) {
     const message = chunk.toString();
-    if (message.includes("ApplicationInsights") && (message.includes("instrumentation key") || message.includes("iKey"))) {
+    if (
+      message.includes("ApplicationInsights") &&
+      (message.includes("instrumentation key") || message.includes("iKey"))
+    ) {
       return true;
     }
     return originalStderrWrite(chunk, encoding, callback);
   };
-  
+
   const originalConsoleWarn = console.warn;
   const originalConsoleError = console.error;
-  
-  console.warn = function(...args) {
+
+  console.warn = function (...args) {
     const message = args.join(" ");
-    if (message.includes("ApplicationInsights") && (message.includes("instrumentation key") || message.includes("iKey"))) {
+    if (
+      message.includes("ApplicationInsights") &&
+      (message.includes("instrumentation key") || message.includes("iKey"))
+    ) {
       return;
     }
     originalConsoleWarn.apply(console, args);
   };
-  
-  console.error = function(...args) {
+
+  console.error = function (...args) {
     const message = args.join(" ");
-    if (message.includes("ApplicationInsights") && (message.includes("instrumentation key") || message.includes("iKey"))) {
+    if (
+      message.includes("ApplicationInsights") &&
+      (message.includes("instrumentation key") || message.includes("iKey"))
+    ) {
       return;
     }
     originalConsoleError.apply(console, args);
@@ -58,6 +73,9 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 // require("message-bus/src/index");
 
 var app = express();
+
+// Disable Express automatic ETag generation (304 responses)
+app.set("etag", false);
 
 // Trust proxy for secure cookies
 app.set("trust proxy", 1);
