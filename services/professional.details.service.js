@@ -81,10 +81,19 @@ class ProfessionalDetailsService {
         throw AppError.badRequest("Application ID is required");
       }
 
+      // Validate parent resource: check if application exists
+      const personalDetails = await personalDetailsHandler.getApplicationById(
+        applicationId
+      );
+      if (!personalDetails) {
+        throw AppError.notFound("Application not found");
+      }
+
       const professionalDetails = await professionalDetailsHandler.getApplicationById(applicationId);
       
+      // If application exists but professional details don't, return null (will be handled as 200 OK with null)
       if (!professionalDetails) {
-        throw AppError.notFound("Professional details not found");
+        return null;
       }
       
       // Validate user permissions for PORTAL users
@@ -102,10 +111,6 @@ class ProfessionalDetailsService {
         "ProfessionalDetailsService [getProfessionalDetails] Error:",
         error
       );
-      // Convert handler's generic error to AppError if needed
-      if (error.message === "Professional details not found") {
-        throw AppError.notFound("Professional details not found");
-      }
       throw error;
     }
   }
