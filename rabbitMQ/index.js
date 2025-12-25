@@ -114,9 +114,9 @@ async function setupConsumers() {
         }
       );
       try {
-        await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
-          data
-        );
+      await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
+        data
+      );
         console.log(
           "✅ [PAYMENT_EVENT] Successfully processed payment event:",
           {
