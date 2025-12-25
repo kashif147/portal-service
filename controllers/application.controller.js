@@ -61,14 +61,14 @@ exports.getApplicationById = async (req, res, next) => {
       await applicationService.getApplicationWithDetails(applicationId);
     
     if (!applicationDetails) {
-      return res.notFoundRecord("Application not found");
+      return next(AppError.notFound("Application not found"));
     }
     
     return res.success(applicationDetails);
   } catch (error) {
     console.error("ApplicationController [getApplicationById] Error:", error);
     if (error.message === "Application not found") {
-      return res.notFoundRecord("Application not found");
+      return next(AppError.notFound("Application not found"));
     }
     return next(error);
   }
@@ -136,7 +136,7 @@ exports.approveApplication = async (req, res, next) => {
       return next(AppError.badRequest(error.message));
     }
     if (error.message.includes("Application not found")) {
-      return res.notFoundRecord("Application not found");
+      return next(AppError.notFound("Application not found"));
     }
     return next(error);
   }

@@ -147,7 +147,7 @@ exports.getPersonalDetails = async (req, res, next) => {
     );
     
     if (!personalDetails) {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     
     return res.success(personalDetails);
@@ -157,7 +157,7 @@ exports.getPersonalDetails = async (req, res, next) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     return next(error);
   }
@@ -196,7 +196,7 @@ exports.updatePersonalDetails = async (req, res, next) => {
       return next(AppError.badRequest("Validation error: " + error.message));
     }
     if (error.message === "Personal details not found") {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     return next(error);
   }
@@ -224,7 +224,7 @@ exports.deletePersonalDetails = async (req, res, next) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     return next(error);
   }
@@ -268,7 +268,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
 
     if (!personalDetails) {
       console.log("No personal details found for user:", userId);
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
 
     console.log("=== getMyPersonalDetails SUCCESS ===");
@@ -280,7 +280,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
     );
     console.error("Error stack:", error.stack);
     if (error.message === "Personal details not found") {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     return next(error);
   }
@@ -308,7 +308,7 @@ exports.getApplicationStatus = async (req, res, next) => {
       error
     );
     if (error.message === "Personal details not found") {
-      return res.notFoundRecord("Personal details not found");
+      return next(AppError.notFound("Personal details not found"));
     }
     return next(error);
   }

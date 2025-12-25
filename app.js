@@ -74,7 +74,7 @@ const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
 
 var app = express();
 
-// Disable Express automatic ETag generation (304 responses)
+// Disable ETag generation to prevent 304 responses
 app.set("etag", false);
 
 // Trust proxy for secure cookies
@@ -166,7 +166,13 @@ app.get("/", (req, res) => {
 
 // Health check endpoint (no auth required)
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "UP" });
+  res.json({
+    status: "healthy",
+    service: "portal-service",
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 4000,
+    environment: process.env.NODE_ENV || "development",
+  });
 });
 
 // API documentation endpoint (no auth required)

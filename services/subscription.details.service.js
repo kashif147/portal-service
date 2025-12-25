@@ -261,14 +261,6 @@ class SubscriptionDetailsService {
         throw AppError.badRequest("Application ID is required");
       }
 
-      // Validate parent resource: check if application exists
-      const personalDetails = await personalDetailsHandler.getApplicationById(
-        applicationId
-      );
-      if (!personalDetails) {
-        throw AppError.notFound("Application not found");
-      }
-
       if (userType === "CRM") {
         return await subscriptionDetailsHandler.getApplicationById(
           applicationId
