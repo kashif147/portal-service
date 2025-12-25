@@ -1,37 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const personalDetailsController = require("../controllers/personal.details.controller");
-const { defaultPolicyMiddleware } = require("../middlewares/policy.middleware");
+const { autoRequirePermission } = require("../middlewares/autoPolicy.middleware");
 
-router.post(
-  "/",
-  defaultPolicyMiddleware.requirePermission("portal", "create"),
-  personalDetailsController.createPersonalDetails
-);
-router.get(
-  "/",
-  defaultPolicyMiddleware.requirePermission("portal", "read"),
-  personalDetailsController.getMyPersonalDetails
-);
-router.get(
-  "/:applicationId",
-  defaultPolicyMiddleware.requirePermission("portal", "read"),
-  personalDetailsController.getPersonalDetails
-);
-router.get(
-  "/:applicationId/status",
-  defaultPolicyMiddleware.requirePermission("portal", "read"),
-  personalDetailsController.getApplicationStatus
-);
-router.put(
-  "/:applicationId",
-  defaultPolicyMiddleware.requirePermission("portal", "write"),
-  personalDetailsController.updatePersonalDetails
-);
-router.delete(
-  "/:applicationId",
-  defaultPolicyMiddleware.requirePermission("portal", "delete"),
-  personalDetailsController.deletePersonalDetails
-);
+// Auto-derive permissions from route metadata:
+// POST / → portal:create
+// GET / → portal:read
+// GET /:applicationId → portal:read
+// GET /:applicationId/status → portal:read
+// PUT /:applicationId → portal:write
+// DELETE /:applicationId → portal:delete
+
+router.post("/", autoRequirePermission(), personalDetailsController.createPersonalDetails);
+router.get("/", autoRequirePermission(), personalDetailsController.getMyPersonalDetails);
+router.get("/:applicationId", autoRequirePermission(), personalDetailsController.getPersonalDetails);
+router.get("/:applicationId/status", autoRequirePermission(), personalDetailsController.getApplicationStatus);
+router.put("/:applicationId", autoRequirePermission(), personalDetailsController.updatePersonalDetails);
+router.delete("/:applicationId", autoRequirePermission(), personalDetailsController.deletePersonalDetails);
 
 module.exports = router;

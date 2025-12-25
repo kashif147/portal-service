@@ -24,10 +24,43 @@ const { publishDomainEvent } = require("./utils/eventPublisher.js");
 // Initialize event system
 async function initEventSystem() {
   try {
+    // Create a logger that works with middleware's logger.info?.() pattern
+    const rabbitMQLogger = {
+      info: (...args) => {
+        if (args.length === 2 && typeof args[0] === "string" && typeof args[1] === "object") {
+          console.log(`[RabbitMQ] ${args[0]}`, args[1]);
+        } else if (args.length === 1 && typeof args[0] === "string") {
+          console.log(`[RabbitMQ] ${args[0]}`);
+        } else {
+          console.log("[RabbitMQ]", ...args);
+        }
+      },
+      warn: (...args) => {
+        if (args.length === 2 && typeof args[0] === "string" && typeof args[1] === "object") {
+          console.warn(`[RabbitMQ] ${args[0]}`, args[1]);
+        } else if (args.length === 1 && typeof args[0] === "string") {
+          console.warn(`[RabbitMQ] ${args[0]}`);
+        } else {
+          console.warn("[RabbitMQ]", ...args);
+        }
+      },
+      error: (...args) => {
+        if (args.length === 2 && typeof args[0] === "string" && typeof args[1] === "object") {
+          console.error(`[RabbitMQ] ${args[0]}`, args[1]);
+        } else if (args.length === 1 && typeof args[0] === "string") {
+          console.error(`[RabbitMQ] ${args[0]}`);
+        } else {
+          console.error("[RabbitMQ]", ...args);
+        }
+      },
+    };
+
     await init({
       url: process.env.RABBIT_URL,
-      logger: console,
+      logger: rabbitMQLogger,
       prefetch: 10,
+      connectionName: "portal-service",
+      serviceName: "portal-service",
     });
     console.log("✅ Event system initialized with middleware");
   } catch (error) {
@@ -66,18 +99,45 @@ async function setupConsumers() {
 
     // Register handler for both routing keys
     const handlePaymentEvent = async (payload, context) => {
-      const { data } = payload;
+      const { data, eventType, eventId } = payload;
       console.log(
         "📥 [PAYMENT_EVENT] Received payment event:",
         {
+          eventType,
+          eventId,
           routingKey: context.routingKey,
+          exchange: context.exchange,
           applicationId: data?.applicationId,
           status: data?.status,
+          tenantId: data?.tenantId,
+          timestamp: new Date().toISOString(),
         }
       );
+      try {
       await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
         data
       );
+        console.log(
+          "✅ [PAYMENT_EVENT] Successfully processed payment event:",
+          {
+            eventType,
+            eventId,
+            applicationId: data?.applicationId,
+          }
+        );
+      } catch (error) {
+        console.error(
+          "❌ [PAYMENT_EVENT] Error processing payment event:",
+          {
+            eventType,
+            eventId,
+            applicationId: data?.applicationId,
+            error: error.message,
+            stack: error.stack,
+          }
+        );
+        throw error; // Re-throw to let middleware handle retry/DLQ
+      }
     };
 
     consumer.registerHandler("application.status.updated", handlePaymentEvent);
@@ -85,6 +145,12 @@ async function setupConsumers() {
       "application.status.submitted",
       handlePaymentEvent
     );
+    
+    console.log("✅ Registered handlers for:", {
+      routingKeys: ["application.status.updated", "application.status.submitted"],
+      queue: PAYMENT_QUEUE,
+      exchange: "accounts.events",
+    });
 
     // Start consuming
     await consumer.consume(PAYMENT_QUEUE, { prefetch: 10 });
