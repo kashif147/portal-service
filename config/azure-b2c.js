@@ -11,7 +11,7 @@ module.exports = {
   signinPolicy: process.env.B2C_SIGNIN_POLICY || "B2C_1_signin",
   signupPolicy: process.env.B2C_SIGNUP_POLICY || "B2C_1_signup",
   redirectUri:
-    process.env.B2C_REDIRECT_URI || "http://localhost:4000/auth/azure-portal",
+    process.env.B2C_REDIRECT_URI || "http://localhost:4001/auth/azure-portal",
 
   // Constructed URLs (these are used in the controller directly)
   getBaseUrl(policy) {
