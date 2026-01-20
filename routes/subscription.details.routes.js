@@ -10,6 +10,7 @@ const { autoRequirePermission } = require("../middlewares/autoPolicy.middleware"
 // DELETE /:applicationId → portal:delete
 
 router.post("/:applicationId", autoRequirePermission(), subscriptionDetailsController.createSubscriptionDetails);
+router.get("/", autoRequirePermission(), subscriptionDetailsController.getMySubscriptionDetails);
 router.get("/:applicationId", autoRequirePermission(), subscriptionDetailsController.getSubscriptionDetails);
 router.put("/:applicationId", autoRequirePermission(), subscriptionDetailsController.updateSubscriptionDetails);
 router.delete("/:applicationId", autoRequirePermission(), subscriptionDetailsController.deleteSubscriptionDetails);

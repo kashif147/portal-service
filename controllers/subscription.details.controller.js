@@ -163,3 +163,36 @@ exports.deleteSubscriptionDetails = async (req, res, next) => {
     return next(error);
   }
 };
+
+exports.getMySubscriptionDetails = async (req, res, next) => {
+  try {
+    const { userId, userType } = extractUserAndCreatorContext(req);
+
+    // Only allow PORTAL users to access this endpoint
+    if (userType !== "PORTAL") {
+      return next(AppError.forbidden("Access denied. Only for PORTAL users."));
+    }
+
+    if (!userId) {
+      return next(AppError.badRequest("User ID is required"));
+    }
+
+    const subscriptionDetails =
+      await subscriptionDetailsService.getMySubscriptionDetails(userId);
+
+    if (!subscriptionDetails) {
+      return res.notFoundRecord("Subscription details not found");
+    }
+
+    return res.success(subscriptionDetails);
+  } catch (error) {
+    console.error(
+      "SubscriptionDetailsController [getMySubscriptionDetails] Error:",
+      error
+    );
+    if (error.message === "Subscription details not found") {
+      return res.notFoundRecord("Subscription details not found");
+    }
+    return next(error);
+  }
+};

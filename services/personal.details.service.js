@@ -155,7 +155,9 @@ class PersonalDetailsService {
         throw AppError.badRequest("User ID is required");
       }
 
-      return await personalDetailsHandler.getByUserIdForPortal(userId);
+      // Use getByUserId instead of getByUserIdForPortal for consistency
+      // This matches the behavior of professional and subscription details
+      return await personalDetailsHandler.getByUserId(userId);
     } catch (error) {
       console.error(
         "PersonalDetailsService [getMyPersonalDetails] Error:",
