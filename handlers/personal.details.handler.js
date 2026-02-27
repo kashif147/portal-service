@@ -1,5 +1,33 @@
 const PersonalDetails = require("../models/personal.details.model");
 
+const generateFullAddress = (contactInfo) => {
+  if (!contactInfo) return "";
+  
+  const parts = [];
+  
+  if (contactInfo.buildingOrHouse?.trim()) {
+    parts.push(contactInfo.buildingOrHouse.trim());
+  }
+  
+  if (contactInfo.streetOrRoad?.trim()) {
+    parts.push(contactInfo.streetOrRoad.trim());
+  }
+  
+  if (contactInfo.areaOrTown?.trim()) {
+    parts.push(contactInfo.areaOrTown.trim());
+  }
+  
+  if (contactInfo.countyCityOrPostCode?.trim()) {
+    parts.push(contactInfo.countyCityOrPostCode.trim());
+  }
+  
+  if (contactInfo.country?.trim()) {
+    parts.push(contactInfo.country.trim());
+  }
+  
+  return parts.join(", ");
+};
+
 exports.create = (data) =>
   new Promise(async (resolve, reject) => {
     try {
@@ -48,16 +76,7 @@ exports.create = (data) =>
 
       // Address formatting
       if (data.contactInfo) {
-        const fullAddress = [
-          data.contactInfo.buildingOrHouse,
-          data.contactInfo.streetOrRoad,
-          data.contactInfo.areaOrTown,
-          data.contactInfo.countyCityOrPostCode,
-          data.contactInfo.country,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        data.contactInfo.fullAddress = fullAddress;
+        data.contactInfo.fullAddress = generateFullAddress(data.contactInfo);
       }
 
       const record = await PersonalDetails.create(data);
@@ -146,6 +165,10 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
 exports.updateByApplicationId = (applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      if (updateData.contactInfo) {
+        updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
+      }
+      
       const record = await PersonalDetails.findOneAndUpdate(
         { applicationId: applicationId },
         updateData,
@@ -168,6 +191,10 @@ exports.updateByApplicationId = (applicationId, updateData) =>
 exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      if (updateData.contactInfo) {
+        updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
+      }
+      
       const record = await PersonalDetails.findOneAndUpdate(
         { userId: userId, applicationId: applicationId },
         updateData,
