@@ -3,6 +3,7 @@ const { PROFILE_EVENTS } = require("../events/profile.application.create.js");
 const PersonalDetails = require("../../models/personal.details.model.js");
 const ProfessionalDetails = require("../../models/professional.details.model.js");
 const SubscriptionDetails = require("../../models/subscription.model.js");
+const { APPLICATION_STATUS } = require("../../constants/enums.js");
 
 class ApplicationStatusUpdateListener {
   constructor() {
@@ -104,10 +105,26 @@ class ApplicationStatusUpdateListener {
         userId: personalDetails.userId,
       });
 
+      const currentStatus = (
+        personalDetails.applicationStatus || ""
+      ).toLowerCase();
+      if (
+        currentStatus === APPLICATION_STATUS.REJECTED ||
+        currentStatus === APPLICATION_STATUS.APPROVED
+      ) {
+        console.log(
+          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already in terminal state",
+          {
+            applicationId,
+            applicationStatus: personalDetails.applicationStatus,
+          }
+        );
+        return;
+      }
+
       // 2. Update application status to "submitted" when payment is captured
       // All payment-captured statuses ("submitted", "paid", "succeeded", "completed")
       // should be converted to APPLICATION_STATUS.SUBMITTED enum value
-      const { APPLICATION_STATUS } = require("../../constants/enums.js");
       const targetStatus = APPLICATION_STATUS.SUBMITTED;
 
       const updateData = {

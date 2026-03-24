@@ -295,13 +295,13 @@ exports.getApplicationStatus = async (req, res, next) => {
       return next(AppError.badRequest("Application ID is required"));
     }
 
-    const applicationStatus = await personalDetailsService.getApplicationStatus(
+    const statusPayload = await personalDetailsService.getApplicationStatus(
       applicationId,
       userId,
       userType
     );
 
-    return res.success({ applicationStatus });
+    return res.success(statusPayload);
   } catch (error) {
     console.error(
       "PersonalDetailsController [getApplicationStatus] Error:",

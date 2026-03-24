@@ -42,6 +42,15 @@ class ApplicationApprovalListener {
         tenantId,
       } = data;
 
+      const statusNorm = (applicationStatus || "").toLowerCase().trim();
+      if (statusNorm && statusNorm !== APPLICATION_STATUS.APPROVED) {
+        console.log(
+          "⏭️ [APPLICATION_APPROVAL_LISTENER] Skipping: not an approval event",
+          { applicationId, applicationStatus }
+        );
+        return;
+      }
+
       // 1. Find and update PersonalDetails with approval status
       const personalDetails = await PersonalDetails.findOne({
         applicationId: applicationId,
@@ -51,6 +60,17 @@ class ApplicationApprovalListener {
         console.error(
           "❌ [APPLICATION_APPROVAL_LISTENER] Personal details not found for Application ID:",
           applicationId
+        );
+        return;
+      }
+
+      if (
+        (personalDetails.applicationStatus || "").toLowerCase() ===
+        APPLICATION_STATUS.REJECTED
+      ) {
+        console.log(
+          "⏭️ [APPLICATION_APPROVAL_LISTENER] Skipping: application already rejected in portal DB",
+          { applicationId }
         );
         return;
       }

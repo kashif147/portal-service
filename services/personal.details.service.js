@@ -194,7 +194,7 @@ class PersonalDetailsService {
    * @param {string} applicationId - Application ID
    * @param {string} userId - User ID (for authorization)
    * @param {string} userType - User type (CRM/PORTAL)
-   * @returns {Promise<string>} Application status
+   * @returns {Promise<{ applicationStatus: string, meta: { isActive: boolean } }>}
    */
   async getApplicationStatus(applicationId, userId, userType) {
     try {
@@ -219,7 +219,15 @@ class PersonalDetailsService {
         throw new Error("Personal details not found");
       }
 
-      return personalDetails.applicationStatus;
+      const isActive =
+        personalDetails.meta?.isActive !== undefined
+          ? personalDetails.meta.isActive
+          : true;
+
+      return {
+        applicationStatus: personalDetails.applicationStatus,
+        meta: { isActive },
+      };
     } catch (error) {
       console.error(
         "PersonalDetailsService [getApplicationStatus] Error:",

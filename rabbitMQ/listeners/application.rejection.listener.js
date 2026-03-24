@@ -1,4 +1,6 @@
 const PersonalDetails = require("../../models/personal.details.model.js");
+const ProfessionalDetails = require("../../models/professional.details.model.js");
+const SubscriptionDetails = require("../../models/subscription.model.js");
 const { APPLICATION_STATUS } = require("../../constants/enums.js");
 
 // Helper function to handle bypass user ObjectId conversion
@@ -51,6 +53,7 @@ class ApplicationRejectionListener {
       // Update PersonalDetails with rejection status and details
       const personalUpdateData = {
         applicationStatus: APPLICATION_STATUS.REJECTED,
+        "meta.isActive": false,
         approvalDetails: {
           approvedBy: getReviewerIdForDb(reviewerId),
           approvedAt: new Date(),
@@ -80,8 +83,25 @@ class ApplicationRejectionListener {
         }
       );
 
-      // Note: ProfessionalDetails and SubscriptionDetails are kept as-is (not deleted)
-      // No Profile is created for rejected applications
+      const [profResult, subResult] = await Promise.all([
+        ProfessionalDetails.updateMany(
+          { applicationId },
+          { $set: { "meta.isActive": false } }
+        ),
+        SubscriptionDetails.updateMany(
+          { applicationId },
+          { $set: { "meta.isActive": false } }
+        ),
+      ]);
+
+      console.log(
+        "✅ [APPLICATION_REJECTION_LISTENER] Related records deactivated (meta.isActive):",
+        {
+          applicationId,
+          professionalDetailsModified: profResult.modifiedCount,
+          subscriptionDetailsModified: subResult.modifiedCount,
+        }
+      );
 
       console.log(
         "✅ [APPLICATION_REJECTION_LISTENER] Application rejection processed successfully:",
