@@ -17,6 +17,12 @@ const ApplicationRejectionListener = require("./listeners/application.rejection.
 const {
   handleProfessionalWorkLocationUpdated,
 } = require("./listeners/professional.details.listener.js");
+const {
+  handleSubscriptionResignedInactive,
+  handleSubscriptionCancelledInactive,
+  handleSubscriptionResignationUndoneActive,
+  handleSubscriptionCancellationUndoneActive,
+} = require("./listeners/subscription.personal.details.listener.js");
 
 // Import event publisher utility
 const { publishDomainEvent } = require("./utils/eventPublisher.js");
@@ -213,13 +219,13 @@ async function setupConsumers() {
       APPROVAL_QUEUE
     );
 
-    // Membership events queue (membership.events exchange) for professional details updates
+    // Membership events queue for professional details and subscription status updates
     const MEMBERSHIP_QUEUE = "portal.membership.events";
     console.log("🔧 [SETUP] Creating membership queue...");
     console.log("   Queue:", MEMBERSHIP_QUEUE);
-    console.log("   Exchange: application.events");
+    console.log("   Exchanges: application.events, membership.events");
     console.log(
-      "   Routing Key: members.professionaldetails.worklocation.updated.v1"
+      "   Routing Keys: members.professionaldetails.worklocation.updated.v1, members.subscription.resigned.v1, members.subscription.cancelled.v1, members.subscription.resignation.undone.v1, members.subscription.cancellation.undone.v1"
     );
 
     await consumer.createQueue(MEMBERSHIP_QUEUE, {
@@ -232,6 +238,12 @@ async function setupConsumers() {
     // so we bind to that exchange here.
     await consumer.bindQueue(MEMBERSHIP_QUEUE, "application.events", [
       "members.professionaldetails.worklocation.updated.v1",
+    ]);
+    await consumer.bindQueue(MEMBERSHIP_QUEUE, "membership.events", [
+      "members.subscription.resigned.v1",
+      "members.subscription.cancelled.v1",
+      "members.subscription.resignation.undone.v1",
+      "members.subscription.cancellation.undone.v1",
     ]);
 
     consumer.registerHandler(
@@ -247,6 +259,62 @@ async function setupConsumers() {
           }
         );
         await handleProfessionalWorkLocationUpdated(data);
+      }
+    );
+    consumer.registerHandler(
+      "members.subscription.resigned.v1",
+      async (payload, context) => {
+        console.log(
+          "📥 [MEMBERSHIP_EVENT] Received subscription resigned event:",
+          {
+            routingKey: context.routingKey,
+            subscriptionId: payload?.data?.subscriptionId || payload?.subscriptionId,
+            applicationId: payload?.data?.applicationId || payload?.applicationId,
+          }
+        );
+        await handleSubscriptionResignedInactive(payload);
+      }
+    );
+    consumer.registerHandler(
+      "members.subscription.cancelled.v1",
+      async (payload, context) => {
+        console.log(
+          "📥 [MEMBERSHIP_EVENT] Received subscription cancelled event:",
+          {
+            routingKey: context.routingKey,
+            subscriptionId: payload?.data?.subscriptionId || payload?.subscriptionId,
+            applicationId: payload?.data?.applicationId || payload?.applicationId,
+          }
+        );
+        await handleSubscriptionCancelledInactive(payload);
+      }
+    );
+    consumer.registerHandler(
+      "members.subscription.resignation.undone.v1",
+      async (payload, context) => {
+        console.log(
+          "📥 [MEMBERSHIP_EVENT] Received subscription resignation undone event:",
+          {
+            routingKey: context.routingKey,
+            subscriptionId: payload?.data?.subscriptionId || payload?.subscriptionId,
+            applicationId: payload?.data?.applicationId || payload?.applicationId,
+          }
+        );
+        await handleSubscriptionResignationUndoneActive(payload);
+      }
+    );
+    consumer.registerHandler(
+      "members.subscription.cancellation.undone.v1",
+      async (payload, context) => {
+        console.log(
+          "📥 [MEMBERSHIP_EVENT] Received subscription cancellation undone event:",
+          {
+            routingKey: context.routingKey,
+            subscriptionId: payload?.data?.subscriptionId || payload?.subscriptionId,
+            applicationId: payload?.data?.applicationId || payload?.applicationId,
+          }
+        );
+        await handleSubscriptionCancellationUndoneActive(payload);
       }
     );
 
