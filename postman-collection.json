@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "Portal Service API",
+    "description": "Latest API collection for portal-service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000", "type": "string" },
+    { "key": "authToken", "value": "", "type": "string" },
+    { "key": "applicationId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Start Auth",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/start", "host": ["{{baseUrl}}"], "path": ["auth", "start"] }
+          }
+        },
+        {
+          "name": "Azure Callback",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/azure-portal", "host": ["{{baseUrl}}"], "path": ["auth", "azure-portal"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Personal Details",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/personal-details", "host": ["{{baseUrl}}"], "path": ["api", "personal-details"] },
+            "body": { "mode": "raw", "raw": "{\n  \"personalDetails\": {}\n}" }
+          }
+        },
+        {
+          "name": "Get My Personal Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/personal-details", "host": ["{{baseUrl}}"], "path": ["api", "personal-details"] }
+          }
+        },
+        {
+          "name": "Get By Application ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/personal-details/{{applicationId}}", "host": ["{{baseUrl}}"], "path": ["api", "personal-details", "{{applicationId}}"] }
+          }
+        },
+        {
+          "name": "Get Application Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/personal-details/{{applicationId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "personal-details", "{{applicationId}}", "status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Professional Details",
+      "item": [
+        {
+          "name": "Get My Professional Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/professional-details", "host": ["{{baseUrl}}"], "path": ["api", "professional-details"] }
+          }
+        },
+        {
+          "name": "Get By Application ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/professional-details/{{applicationId}}", "host": ["{{baseUrl}}"], "path": ["api", "professional-details", "{{applicationId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription Details",
+      "item": [
+        {
+          "name": "Get My Subscription Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/subscription-details", "host": ["{{baseUrl}}"], "path": ["api", "subscription-details"] }
+          }
+        },
+        {
+          "name": "Get By Application ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/subscription-details/{{applicationId}}", "host": ["{{baseUrl}}"], "path": ["api", "subscription-details", "{{applicationId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Get All Applications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/applications", "host": ["{{baseUrl}}"], "path": ["api", "applications"] }
+          }
+        },
+        {
+          "name": "Get Application By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/applications/{{applicationId}}", "host": ["{{baseUrl}}"], "path": ["api", "applications", "{{applicationId}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
