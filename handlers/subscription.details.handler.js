@@ -68,7 +68,11 @@ exports.deleteByApplicationId = (applicationId) =>
 exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const result = await SubscriptionDetails.findOne({ userId });
+      const result = await SubscriptionDetails.findOne({
+        userId,
+        "meta.deleted": { $ne: true },
+        "meta.isActive": true,
+      }).sort({ updatedAt: -1, createdAt: -1 });
       resolve(result);
     } catch (error) {
       console.error("SubscriptionDetailsHandler [getByUserId] Error:", error);

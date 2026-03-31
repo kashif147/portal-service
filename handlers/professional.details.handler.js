@@ -101,7 +101,11 @@ exports.checkPersonalDetailsByEmail = (email) =>
 exports.getByUserId = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const result = await ProfessionalDetails.findOne({ userId });
+      const result = await ProfessionalDetails.findOne({
+        userId,
+        "meta.deleted": { $ne: true },
+        "meta.isActive": true,
+      }).sort({ updatedAt: -1, createdAt: -1 });
       resolve(result);
     } catch (error) {
       console.error("ProfessionalDetailsHandler [getByUserId] Error:", error);
