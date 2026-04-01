@@ -64,17 +64,6 @@ class ApplicationApprovalListener {
         return;
       }
 
-      if (
-        (personalDetails.applicationStatus || "").toLowerCase() ===
-        APPLICATION_STATUS.REJECTED
-      ) {
-        console.log(
-          "⏭️ [APPLICATION_APPROVAL_LISTENER] Skipping: application already rejected in portal DB",
-          { applicationId }
-        );
-        return;
-      }
-
       console.log("✅ [APPLICATION_APPROVAL_LISTENER] Found personal details:", {
         id: personalDetails._id,
         applicationId: personalDetails.applicationId,
@@ -84,6 +73,7 @@ class ApplicationApprovalListener {
       // Update PersonalDetails with approval status and details
       const personalUpdateData = {
         applicationStatus: APPLICATION_STATUS.APPROVED,
+        "meta.isActive": true,
         approvalDetails: {
           approvedBy: getReviewerIdForDb(reviewerId),
           approvedAt: new Date(),
@@ -172,6 +162,15 @@ class ApplicationApprovalListener {
           );
         }
       }
+
+      await ProfessionalDetails.updateMany(
+        { applicationId },
+        { $set: { "meta.isActive": true } }
+      );
+      await SubscriptionDetails.updateMany(
+        { applicationId },
+        { $set: { "meta.isActive": true } }
+      );
 
       console.log(
         "✅ [APPLICATION_APPROVAL_LISTENER] Application approval processed successfully:",

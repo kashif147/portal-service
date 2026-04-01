@@ -67,16 +67,36 @@ exports.updateApplicationStatus = (
           comments: comments || "",
         },
       };
+      if (normalizedStatus === APPLICATION_STATUS.REJECTED) {
+        updateData["meta.isActive"] = false;
+      } else if (normalizedStatus === APPLICATION_STATUS.APPROVED) {
+        updateData["meta.isActive"] = true;
+      }
 
       const result = await PersonalDetails.findOneAndUpdate(
         { applicationId: applicationId },
-        updateData,
+        { $set: updateData },
         { new: true, runValidators: true }
       );
 
       if (!result) {
         reject(new Error("Application not found"));
         return;
+      }
+
+      const active = normalizedStatus === APPLICATION_STATUS.APPROVED;
+      if (
+        normalizedStatus === APPLICATION_STATUS.APPROVED ||
+        normalizedStatus === APPLICATION_STATUS.REJECTED
+      ) {
+        await ProfessionalDetails.updateMany(
+          { applicationId },
+          { $set: { "meta.isActive": active } }
+        );
+        await SubscriptionDetails.updateMany(
+          { applicationId },
+          { $set: { "meta.isActive": active } }
+        );
       }
 
       // NOTE: Membership number generation happens in profile-service during approval
