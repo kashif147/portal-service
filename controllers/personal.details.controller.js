@@ -99,14 +99,24 @@ exports.createPersonalDetails = async (req, res, next) => {
       {
         ...validatedData,
         userId,
-        meta: { createdBy: creatorId, userType },
+        meta: {
+          createdBy: creatorId,
+          userType,
+          deleted: false,
+          isActive: true,
+        },
       }
     );
 
     const result = await personalDetailsService.createPersonalDetails({
       ...validatedData,
       userId,
-      meta: { createdBy: creatorId, userType },
+      meta: {
+        createdBy: creatorId,
+        userType,
+        deleted: false,
+        isActive: true,
+      },
     });
 
     console.log("=== createPersonalDetails SUCCESS ===");
