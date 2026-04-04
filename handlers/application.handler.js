@@ -2,6 +2,10 @@ const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
 const { APPLICATION_STATUS } = require("../constants/enums");
+const {
+  stampPersonalInfoFullName,
+  enrichApplicationRowPersonalFullName,
+} = require("../helpers/personal.info.fullName.js");
 
 exports.getAllApplications = (statusFilters = []) =>
   new Promise(async (resolve, reject) => {
@@ -40,6 +44,10 @@ exports.getApplicationById = (applicationId) =>
       if (!application) {
         reject(new Error("Application not found"));
         return;
+      }
+
+      if (application.personalInfo) {
+        stampPersonalInfoFullName(application.personalInfo);
       }
 
       resolve(application);
@@ -82,6 +90,10 @@ exports.updateApplicationStatus = (
       if (!result) {
         reject(new Error("Application not found"));
         return;
+      }
+
+      if (result.personalInfo) {
+        stampPersonalInfoFullName(result.personalInfo);
       }
 
       const active = normalizedStatus === APPLICATION_STATUS.APPROVED;
@@ -167,6 +179,8 @@ exports.getApplicationWithDetails = (applicationId) =>
         updatedAt: personalDetails.updatedAt,
       };
 
+      enrichApplicationRowPersonalFullName(applicationDetails);
+
       resolve(applicationDetails);
     } catch (error) {
       console.error(
@@ -228,7 +242,7 @@ exports.getAllApplicationsWithDetails = (statusFilters = []) =>
               ? { membershipCategory }
               : null;
 
-            return {
+            const row = {
               applicationId: application.applicationId,
               userId: application.userId,
               membershipNumber: subscriptionDetails
@@ -242,6 +256,8 @@ exports.getAllApplicationsWithDetails = (statusFilters = []) =>
               createdAt: application.createdAt,
               updatedAt: application.updatedAt,
             };
+            enrichApplicationRowPersonalFullName(row);
+            return row;
           } catch (error) {
             console.error("Error fetching details for application:", error);
             return null;

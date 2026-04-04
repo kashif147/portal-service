@@ -4,6 +4,9 @@ const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
+const {
+  enrichPersonalInfoFullNameOnDocument,
+} = require("../helpers/personal.info.fullName.js");
 
 exports.createPersonalDetails = async (req, res, next) => {
   try {
@@ -120,6 +123,7 @@ exports.createPersonalDetails = async (req, res, next) => {
     });
 
     console.log("=== createPersonalDetails SUCCESS ===");
+    enrichPersonalInfoFullNameOnDocument(result);
     return res.success(result);
   } catch (error) {
     console.error("=== createPersonalDetails ERROR ===");
@@ -169,7 +173,8 @@ exports.getPersonalDetails = async (req, res, next) => {
     if (!personalDetails) {
       return res.notFoundRecord("Personal details not found");
     }
-    
+
+    enrichPersonalInfoFullNameOnDocument(personalDetails);
     return res.success(personalDetails);
   } catch (error) {
     console.error(
@@ -207,6 +212,7 @@ exports.updatePersonalDetails = async (req, res, next) => {
       userType
     );
 
+    enrichPersonalInfoFullNameOnDocument(result);
     return res.success(result);
   } catch (error) {
     console.error(
@@ -292,6 +298,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
       return res.notFoundRecord("Personal details not found");
     }
 
+    enrichPersonalInfoFullNameOnDocument(personalDetails);
     console.log("=== getMyPersonalDetails SUCCESS ===");
     return res.success(personalDetails);
   } catch (error) {

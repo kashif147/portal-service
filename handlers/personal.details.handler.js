@@ -1,4 +1,5 @@
 const PersonalDetails = require("../models/personal.details.model");
+const { stampPersonalInfoFullName } = require("../helpers/personal.info.fullName.js");
 
 const generateFullAddress = (contactInfo) => {
   if (!contactInfo) return "";
@@ -20,7 +21,11 @@ const generateFullAddress = (contactInfo) => {
   if (contactInfo.countyCityOrPostCode?.trim()) {
     parts.push(contactInfo.countyCityOrPostCode.trim());
   }
-  
+
+  if (contactInfo.eircode?.trim()) {
+    parts.push(contactInfo.eircode.trim());
+  }
+
   if (contactInfo.country?.trim()) {
     parts.push(contactInfo.country.trim());
   }
@@ -77,6 +82,10 @@ exports.create = (data) =>
       // Address formatting
       if (data.contactInfo) {
         data.contactInfo.fullAddress = generateFullAddress(data.contactInfo);
+      }
+
+      if (data.personalInfo) {
+        stampPersonalInfoFullName(data.personalInfo);
       }
 
       const record = await PersonalDetails.create(data);
@@ -168,7 +177,19 @@ exports.updateByApplicationId = (applicationId, updateData) =>
       if (updateData.contactInfo) {
         updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
       }
-      
+
+      if (updateData.personalInfo) {
+        const existing = await PersonalDetails.findOne({
+          applicationId,
+        }).lean();
+        const merged = {
+          ...(existing?.personalInfo || {}),
+          ...updateData.personalInfo,
+        };
+        stampPersonalInfoFullName(merged);
+        updateData.personalInfo = merged;
+      }
+
       const record = await PersonalDetails.findOneAndUpdate(
         { applicationId: applicationId },
         updateData,
@@ -194,7 +215,20 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
       if (updateData.contactInfo) {
         updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
       }
-      
+
+      if (updateData.personalInfo) {
+        const existing = await PersonalDetails.findOne({
+          userId,
+          applicationId,
+        }).lean();
+        const merged = {
+          ...(existing?.personalInfo || {}),
+          ...updateData.personalInfo,
+        };
+        stampPersonalInfoFullName(merged);
+        updateData.personalInfo = merged;
+      }
+
       const record = await PersonalDetails.findOneAndUpdate(
         { userId: userId, applicationId: applicationId },
         updateData,
