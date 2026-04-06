@@ -38,7 +38,7 @@ const correctedDetails = enforcePaymentFrequencyRule(subscriptionDetails);
 - `PAYMENT_TYPE.CARD_PAYMENT` = "Credit Card" → **Frequency: "Annually"**
 - `PAYMENT_TYPE.PAYROLL_DEDUCTION` = "Salary Deduction" → **Frequency: "Monthly"**
 - `PAYMENT_TYPE.DIRECT_DEBIT` = "Direct Debit" → **Frequency: "Monthly"**
-- `PAYMENT_TYPE.SBO_PAYMENT` = "Standing Bank Order" → **Frequency: "Monthly"**
+- `PAYMENT_TYPE.SBO_PAYMENT` = "Standing Order" → **Frequency: "Monthly"**
 
 ## Behavior
 
