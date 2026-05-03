@@ -66,6 +66,12 @@ const { corsMiddleware, corsErrorHandler } = require("./config/cors");
 const { mongooseConnection } = require("./config/db");
 const session = require("express-session");
 
+const bizLogger = require("./config/bizLogger.js");
+const {
+  correlationIdMiddleware,
+  logErrorMiddleware,
+  createSystemLogsRouter,
+} = require("@projectShell/logging-lib");
 const loggerMiddleware = require("./middlewares/logger.mw");
 const responseMiddleware = require("./middlewares/response.mw");
 const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
@@ -80,6 +86,7 @@ app.set("etag", false);
 // Trust proxy for secure cookies
 app.set("trust proxy", 1);
 
+app.use(correlationIdMiddleware);
 app.use(responseMiddleware);
 
 mongooseConnection();
@@ -127,6 +134,8 @@ if (process.env.RABBIT_URL) {
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: "200mb" }));
+
+app.use("/api", createSystemLogsRouter(bizLogger));
 
 // Security middleware
 app.use(helmet());
@@ -197,6 +206,7 @@ app.use(function (req, res, next) {
 });
 
 // app.use(corsErrorHandler);
+app.use(logErrorMiddleware(bizLogger));
 app.use(responseMiddleware.errorHandler);
 
 module.exports = app;
