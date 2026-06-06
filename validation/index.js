@@ -95,12 +95,16 @@ module.exports.application_approve = Joi.object({
 //
 module.exports.professional_details_create = Joi.object({
   professionalDetails: Joi.object({
-    membershipCategory: Joi.string().optional().default(null),
+    membershipCategory: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
-    nmbiNumber: Joi.string().optional().default(null),
+    nmbiNumber: Joi.when("nursingAdaptationProgramme", {
+      is: false,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
     nursingAdaptationProgramme: Joi.boolean().optional().default(false),
     nurseType: Joi.when("nursingAdaptationProgramme", {
       is: true,
@@ -123,12 +127,16 @@ module.exports.professional_details_create = Joi.object({
 
 module.exports.professional_details_update = Joi.object({
   professionalDetails: Joi.object({
-    membershipCategory: Joi.string().optional().default(null),
+    membershipCategory: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
-    nmbiNumber: Joi.string().optional().default(null),
+    nmbiNumber: Joi.when("nursingAdaptationProgramme", {
+      is: false,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
     nursingAdaptationProgramme: Joi.boolean().optional().default(false),
     nurseType: Joi.when("nursingAdaptationProgramme", {
       is: true,
@@ -155,6 +163,13 @@ module.exports.subscription_details_create = Joi.object({
       .optional(),
     payrollNo: Joi.string().optional().default(null),
     membershipStatus: Joi.string().optional().default(null),
+    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
+    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
+    youthForum: Joi.when("joinYouthForum", {
+      is: true,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
     otherIrishTradeUnion: Joi.boolean().optional().default(false),
     otherIrishTradeUnionName: Joi.string().optional().default(null),
     otherScheme: Joi.boolean().optional().default(false),
@@ -171,7 +186,7 @@ module.exports.subscription_details_create = Joi.object({
     termsAndConditions: Joi.boolean().optional().default(true),
     membershipCategory: Joi.string().optional().default(null),
     dateJoined: Joi.date().iso().optional().default(null),
-    submissionDate: Joi.date().iso().optional(),
+    submissionDate: Joi.date().iso().optional().allow(null),
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),
@@ -185,6 +200,13 @@ module.exports.subscription_details_update = Joi.object({
       .optional(),
     payrollNo: Joi.string().optional().default(null),
     membershipStatus: Joi.string().optional().default(null),
+    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
+    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
+    youthForum: Joi.when("joinYouthForum", {
+      is: true,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
     otherIrishTradeUnion: Joi.boolean().optional().default(false),
     otherIrishTradeUnionName: Joi.string().optional().default(null),
     otherScheme: Joi.boolean().optional().default(false),
@@ -201,6 +223,7 @@ module.exports.subscription_details_update = Joi.object({
     termsAndConditions: Joi.boolean().optional().default(true),
     membershipCategory: Joi.string().optional().default(null),
     dateJoined: Joi.date().iso().optional().default(null),
+    submissionDate: Joi.date().iso().optional().allow(null),
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),

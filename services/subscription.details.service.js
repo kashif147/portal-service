@@ -86,12 +86,19 @@ class SubscriptionDetailsService {
           membershipCategoryFromProfessional;
       }
 
-      // Enforce payment frequency rule: Credit Card = Annually, Others = Monthly
       const {
         enforcePaymentFrequencyRule,
       } = require("../helpers/payment.frequency.helper.js");
+      const {
+        assertSalaryDeductionAllowedForWorkLocation,
+      } = require("../helpers/workLocationPayment.helper.js");
+
       createData.subscriptionDetails = enforcePaymentFrequencyRule(
         createData.subscriptionDetails
+      );
+      await assertSalaryDeductionAllowedForWorkLocation(
+        createData.subscriptionDetails,
+        professionalDetails?.professionalDetails?.workLocation
       );
 
       // Ensure submissionDate is set when subscription details are created
@@ -324,13 +331,22 @@ class SubscriptionDetailsService {
         );
       }
 
-      // Enforce payment frequency rule if subscriptionDetails are being updated
       if (safeUpdateData.subscriptionDetails) {
         const {
           enforcePaymentFrequencyRule,
         } = require("../helpers/payment.frequency.helper.js");
+        const {
+          assertSalaryDeductionAllowedForWorkLocation,
+        } = require("../helpers/workLocationPayment.helper.js");
+        const professionalDetails =
+          await professionalDetailsHandler.getApplicationById(applicationId);
+
         safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
           safeUpdateData.subscriptionDetails
+        );
+        await assertSalaryDeductionAllowedForWorkLocation(
+          safeUpdateData.subscriptionDetails,
+          professionalDetails?.professionalDetails?.workLocation
         );
       }
 
