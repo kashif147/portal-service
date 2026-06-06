@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 const { PAYMENT_TYPE } = require("../constants/enums");
 const { AppError } = require("../errors/AppError");
+const {
+  getLookupUserDbConnection,
+  getLookupModels,
+} = require("./lookupUserDb");
 
 const normalizeKey = (value) =>
   String(value || "")
@@ -14,62 +18,43 @@ const isWorkLocationLookupType = (lookupTypeDoc) => {
   return typeName === "worklocation" || code === "workloc";
 };
 
-function getLookupModel() {
-  try {
-    return mongoose.model("Lookup");
-  } catch {
-    const lookupSchema = new mongoose.Schema(
-      {
-        code: { type: String, required: true },
-        lookupname: { type: String, required: true },
-        DisplayName: { type: String },
-        Parentlookupid: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Lookup",
-          default: null,
-        },
-        lookuptypeId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "LookupType",
-          required: true,
-        },
-        isdeleted: { type: Boolean, default: false },
-        isactive: { type: Boolean, default: true },
-        processSalaryDeduction: { type: Boolean, default: false },
-        userid: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-      },
-      { timestamps: true }
-    );
-    return mongoose.model("Lookup", lookupSchema);
-  }
-}
-
-function getLookupTypeModel() {
-  try {
-    return mongoose.model("LookupType");
-  } catch {
-    const lookupTypeSchema = new mongoose.Schema(
-      {
-        code: { type: String, required: true },
-        lookuptype: { type: String, required: true },
-        displayname: { type: String },
-      },
-      { timestamps: true }
-    );
-    return mongoose.model("LookupType", lookupTypeSchema);
-  }
+async function getUserServiceLookupModels() {
+  const connection = await getLookupUserDbConnection();
+  return getLookupModels(connection);
 }
 
 async function resolveWorkLocationProcessSalaryDeduction(workLocationLabel) {
   const labelKey = normalizeKey(workLocationLabel);
   if (!labelKey || labelKey === "other") return false;
 
-  const Lookup = getLookupModel();
-  const escaped = workLocationLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const { Lookup, LookupType } = await getUserServiceLookupModels();
+
+  if (
+    mongoose.Types.ObjectId.isValid(workLocationLabel) &&
+    String(workLocationLabel).length === 24
+  ) {
+    const byId = await Lookup.findOne({
+      _id: workLocationLabel,
+      isdeleted: { $ne: true },
+      isactive: { $ne: false },
+    })
+      .select("processSalaryDeduction lookuptypeId")
+      .lean();
+
+    if (byId?.lookuptypeId) {
+      const typeDoc = await LookupType.findById(byId.lookuptypeId)
+        .select("lookuptype code")
+        .lean();
+      if (isWorkLocationLookupType(typeDoc)) {
+        return !!byId.processSalaryDeduction;
+      }
+    }
+  }
+
+  const escaped = String(workLocationLabel).replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&",
+  );
   const namePattern = new RegExp(`^${escaped}$`, "i");
   const candidates = await Lookup.find({
     isdeleted: { $ne: true },
@@ -79,9 +64,10 @@ async function resolveWorkLocationProcessSalaryDeduction(workLocationLabel) {
     .select("lookupname DisplayName processSalaryDeduction lookuptypeId")
     .lean();
 
-  const LookupType = getLookupTypeModel();
   const typeIds = [
-    ...new Set(candidates.map((row) => String(row.lookuptypeId)).filter(Boolean)),
+    ...new Set(
+      candidates.map((row) => String(row.lookuptypeId)).filter(Boolean),
+    ),
   ];
   const types = typeIds.length
     ? await LookupType.find({ _id: { $in: typeIds } })
@@ -111,16 +97,19 @@ function isSalaryDeductionPaymentType(paymentType) {
 
 async function assertSalaryDeductionAllowedForWorkLocation(
   subscriptionDetails,
-  workLocation
+  workLocation,
 ) {
-  if (!subscriptionDetails || !isSalaryDeductionPaymentType(subscriptionDetails.paymentType)) {
+  if (
+    !subscriptionDetails ||
+    !isSalaryDeductionPaymentType(subscriptionDetails.paymentType)
+  ) {
     return;
   }
 
   const allows = await resolveWorkLocationProcessSalaryDeduction(workLocation);
   if (!allows) {
     throw AppError.badRequest(
-      "Salary Deduction is not available for the selected work location"
+      "Salary Deduction is not available for the selected work location",
     );
   }
 }

@@ -338,15 +338,22 @@ class SubscriptionDetailsService {
         const {
           assertSalaryDeductionAllowedForWorkLocation,
         } = require("../helpers/workLocationPayment.helper.js");
-        const professionalDetails =
-          await professionalDetailsHandler.getApplicationById(applicationId);
+        const [professionalDetails, existingDetails] = await Promise.all([
+          professionalDetailsHandler.getApplicationById(applicationId),
+          subscriptionDetailsHandler.getByApplicationId(applicationId),
+        ]);
+
+        const mergedSubscriptionDetails = {
+          ...(existingDetails?.subscriptionDetails || {}),
+          ...safeUpdateData.subscriptionDetails,
+        };
 
         safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
-          safeUpdateData.subscriptionDetails
+          mergedSubscriptionDetails,
         );
         await assertSalaryDeductionAllowedForWorkLocation(
           safeUpdateData.subscriptionDetails,
-          professionalDetails?.professionalDetails?.workLocation
+          professionalDetails?.professionalDetails?.workLocation,
         );
       }
 
