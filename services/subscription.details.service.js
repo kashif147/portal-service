@@ -96,9 +96,9 @@ class SubscriptionDetailsService {
       createData.subscriptionDetails = enforcePaymentFrequencyRule(
         createData.subscriptionDetails
       );
-      await assertSalaryDeductionAllowedForWorkLocation(
+      assertSalaryDeductionAllowedForWorkLocation(
         createData.subscriptionDetails,
-        professionalDetails?.professionalDetails?.workLocation
+        professionalDetails?.professionalDetails,
       );
 
       // Ensure submissionDate is set when subscription details are created
@@ -351,9 +351,9 @@ class SubscriptionDetailsService {
         safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
           mergedSubscriptionDetails,
         );
-        await assertSalaryDeductionAllowedForWorkLocation(
+        assertSalaryDeductionAllowedForWorkLocation(
           safeUpdateData.subscriptionDetails,
-          professionalDetails?.professionalDetails?.workLocation,
+          professionalDetails?.professionalDetails,
         );
       }
 

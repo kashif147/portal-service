@@ -12,6 +12,7 @@ const ProfessionalSchema = new mongoose.Schema(
     professionalDetails: {
       membershipCategory: { type: String, allowNull: true },
       workLocation: { type: String, allowNull: true },
+      processSalaryDeduction: { type: Boolean, default: false },
       otherWorkLocation: { type: String, allowNull: true },
       grade: { type: String, allowNull: true },
       otherGrade: { type: String, allowNull: true },
