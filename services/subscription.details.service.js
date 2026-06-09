@@ -365,10 +365,32 @@ class SubscriptionDetailsService {
 
       let result;
       if (userType === "CRM") {
-        result = await subscriptionDetailsHandler.updateByApplicationId(
-          applicationId,
-          updatePayload
-        );
+        const existingDetails =
+          await subscriptionDetailsHandler.getByApplicationId(applicationId);
+
+        if (!existingDetails) {
+          const personalDetails = await personalDetailsHandler.getApplicationById(
+            applicationId
+          );
+          if (!personalDetails) {
+            throw AppError.notFound("Application not found");
+          }
+
+          result = await subscriptionDetailsHandler.create({
+            applicationId,
+            userId: personalDetails.userId ?? userId,
+            subscriptionDetails: safeUpdateData.subscriptionDetails || {},
+            meta: {
+              createdBy: userId,
+              userType,
+            },
+          });
+        } else {
+          result = await subscriptionDetailsHandler.updateByApplicationId(
+            applicationId,
+            updatePayload
+          );
+        }
       } else {
         result =
           await subscriptionDetailsHandler.updateByUserIdAndApplicationId(
