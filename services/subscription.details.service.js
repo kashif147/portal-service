@@ -63,7 +63,7 @@ class SubscriptionDetailsService {
       }
 
       const professionalDetails =
-        await professionalDetailsHandler.getApplicationById(applicationId);
+        await professionalDetailsHandler.getByApplicationId(applicationId);
       const membershipCategoryFromProfessional =
         professionalDetails?.professionalDetails?.membershipCategory ?? null;
 
@@ -339,7 +339,7 @@ class SubscriptionDetailsService {
           assertSalaryDeductionAllowedForWorkLocation,
         } = require("../helpers/workLocationPayment.helper.js");
         const [professionalDetails, existingDetails] = await Promise.all([
-          professionalDetailsHandler.getApplicationById(applicationId),
+          professionalDetailsHandler.getByApplicationId(applicationId),
           subscriptionDetailsHandler.getByApplicationId(applicationId),
         ]);
 

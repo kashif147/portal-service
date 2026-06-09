@@ -89,7 +89,7 @@ class ProfessionalDetailsService {
         throw AppError.notFound("Application not found");
       }
 
-      const professionalDetails = await professionalDetailsHandler.getApplicationById(applicationId);
+      const professionalDetails = await professionalDetailsHandler.getByApplicationId(applicationId);
       
       // If application exists but professional details don't, return null (will be handled as 200 OK with null)
       if (!professionalDetails) {

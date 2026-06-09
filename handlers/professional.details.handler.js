@@ -283,9 +283,8 @@ exports.getApplicationById = (applicationId) =>
           ApplicationId: applicationId,
         });
       }
-      
-      if (!record) return reject(new Error("Professional details not found"));
-      resolve(record);
+
+      resolve(record || null);
     } catch (error) {
       console.error(
         "ProfessionalDetailsHandler [getApplicationById] Error:",
