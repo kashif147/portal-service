@@ -37,7 +37,7 @@ function enrichProfessionalWithSubscriptionMembershipCategory(
     professionalDoc?.professionalDetails?.membershipCategory
   );
 
-  const membershipCategory = professionalCategory || subscriptionCategory;
+  const membershipCategory = subscriptionCategory || professionalCategory;
   if (!membershipCategory) return professionalDoc;
 
   return {

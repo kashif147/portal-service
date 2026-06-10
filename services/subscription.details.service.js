@@ -48,6 +48,67 @@ class SubscriptionDetailsService {
       const existingDetails =
         await subscriptionDetailsHandler.getByApplicationId(applicationId);
       if (existingDetails) {
+        const isInactiveRecord = existingDetails.meta?.isActive === false;
+
+        if (isInactiveRecord) {
+          const professionalDetails =
+            await professionalDetailsHandler.getByApplicationId(applicationId);
+          const membershipCategoryFromProfessional =
+            professionalDetails?.professionalDetails?.membershipCategory ??
+            null;
+
+          const updateData = {
+            ...data,
+            "meta.updatedBy": userId,
+            "meta.userType": userType,
+            "meta.isActive": true,
+          };
+
+          if (!updateData.subscriptionDetails) {
+            updateData.subscriptionDetails = {};
+          }
+
+          if (
+            updateData.subscriptionDetails.membershipCategory == null &&
+            membershipCategoryFromProfessional != null
+          ) {
+            updateData.subscriptionDetails.membershipCategory =
+              membershipCategoryFromProfessional;
+          }
+
+          const {
+            enforcePaymentFrequencyRule,
+          } = require("../helpers/payment.frequency.helper.js");
+          const {
+            assertSalaryDeductionAllowedForWorkLocation,
+          } = require("../helpers/workLocationPayment.helper.js");
+
+          updateData.subscriptionDetails = enforcePaymentFrequencyRule(
+            updateData.subscriptionDetails
+          );
+          assertSalaryDeductionAllowedForWorkLocation(
+            updateData.subscriptionDetails,
+            professionalDetails?.professionalDetails
+          );
+
+          let result;
+          if (userType === "CRM") {
+            result = await subscriptionDetailsHandler.updateByApplicationId(
+              applicationId,
+              updateData
+            );
+          } else {
+            result =
+              await subscriptionDetailsHandler.updateByUserIdAndApplicationId(
+                userId,
+                applicationId,
+                updateData
+              );
+          }
+
+          return result;
+        }
+
         throw AppError.conflict(
           "Subscription details already exist for this application, please update existing details"
         );

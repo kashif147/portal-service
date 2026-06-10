@@ -49,6 +49,48 @@ class ProfessionalDetailsService {
       const existingDetails =
         await professionalDetailsHandler.getByApplicationId(applicationId);
       if (existingDetails) {
+        const isInactiveRecord = existingDetails.meta?.isActive === false;
+
+        if (isInactiveRecord) {
+          const updatePayload = attachMembershipCategoryToProfessionalData(
+            {
+              ...data,
+              "meta.updatedBy": userId,
+              "meta.userType": userType,
+              "meta.isActive": true,
+            },
+            membershipCategory
+          );
+
+          let result;
+          if (userType === "CRM") {
+            result = await professionalDetailsHandler.updateByApplicationId(
+              applicationId,
+              updatePayload
+            );
+          } else {
+            result =
+              await professionalDetailsHandler.updateByUserIdAndApplicationId(
+                userId,
+                applicationId,
+                updatePayload
+              );
+          }
+
+          await syncMembershipCategoryToSubscription({
+            applicationId,
+            membershipCategory,
+            userId,
+            userType,
+            subscriptionDetailsHandler,
+          });
+
+          return enrichProfessionalWithSubscriptionMembershipCategory(
+            result,
+            await subscriptionDetailsHandler.getByApplicationId(applicationId)
+          );
+        }
+
         throw AppError.conflict(
           "Professional details already exist for this application, please update existing details"
         );

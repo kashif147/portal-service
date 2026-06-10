@@ -1,5 +1,6 @@
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { AppError } = require("../errors/AppError");
+const { APPLICATION_STATUS } = require("../constants/enums");
 
 /**
  * Personal Details Service Layer
@@ -83,6 +84,18 @@ class PersonalDetailsService {
 
       if (!updateData) {
         throw AppError.badRequest("Update data is required");
+      }
+
+      const existingPersonalDetails =
+        await personalDetailsHandler.getApplicationById(applicationId);
+      if (
+        existingPersonalDetails &&
+        (existingPersonalDetails.applicationStatus ===
+          APPLICATION_STATUS.REJECTED ||
+          existingPersonalDetails.meta?.isActive === false)
+      ) {
+        updateData.applicationStatus = APPLICATION_STATUS.IN_PROGRESS;
+        updateData["meta.isActive"] = true;
       }
 
       let result;
