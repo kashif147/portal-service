@@ -7,6 +7,10 @@ const {
   enrichProfessionalWithSubscriptionMembershipCategory,
   syncMembershipCategoryToSubscription,
 } = require("../helpers/membershipCategory.helper.js");
+const {
+  isReapplyApplication,
+  reactivatePersonalApplicationForReapply,
+} = require("../helpers/reactivatePortalApplication.helper.js");
 
 /**
  * Professional Details Service Layer
@@ -49,9 +53,13 @@ class ProfessionalDetailsService {
       const existingDetails =
         await professionalDetailsHandler.getByApplicationId(applicationId);
       if (existingDetails) {
-        const isInactiveRecord = existingDetails.meta?.isActive === false;
+        const isReapply =
+          existingDetails.meta?.isActive === false ||
+          isReapplyApplication(personalDetails);
 
-        if (isInactiveRecord) {
+        if (isReapply) {
+          await reactivatePersonalApplicationForReapply(applicationId);
+
           const updatePayload = attachMembershipCategoryToProfessionalData(
             {
               ...data,

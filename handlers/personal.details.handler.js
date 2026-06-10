@@ -305,13 +305,53 @@ exports.getByUserIdForPortal = (userId) =>
   new Promise(async (resolve, reject) => {
     try {
       const mongoose = require("mongoose");
-      
+      const { APPLICATION_STATUS } = require("../constants/enums");
+
       // Convert userId to ObjectId if it's a string
       const userIdQuery = typeof userId === "string" && mongoose.Types.ObjectId.isValid(userId)
         ? new mongoose.Types.ObjectId(userId)
         : userId;
 
       console.log("[getByUserIdForPortal] Querying with userId:", userId, "converted to:", userIdQuery);
+
+      const baseQuery = {
+        userId: userIdQuery,
+        "meta.userType": "PORTAL",
+        "meta.deleted": { $ne: true },
+      };
+
+      let result = await PersonalDetails.findOne({
+        ...baseQuery,
+        "meta.isActive": true,
+      }).sort({ updatedAt: -1, createdAt: -1 });
+
+      if (!result) {
+        result = await PersonalDetails.findOne({
+          ...baseQuery,
+          applicationStatus: APPLICATION_STATUS.REJECTED,
+        }).sort({ updatedAt: -1, createdAt: -1 });
+      }
+
+      console.log("[getByUserIdForPortal] Query result:", result ? "Found" : "Not found");
+      
+      resolve(result);
+    } catch (error) {
+      console.error(
+        "PersonalDetailsHandler [getByUserIdForPortal] Error:",
+        error
+      );
+      reject(error);
+    }
+  });
+
+exports.getActiveByUserIdForPortal = (userId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const mongoose = require("mongoose");
+
+      const userIdQuery = typeof userId === "string" && mongoose.Types.ObjectId.isValid(userId)
+        ? new mongoose.Types.ObjectId(userId)
+        : userId;
 
       const result = await PersonalDetails.findOne({
         userId: userIdQuery,
@@ -320,12 +360,10 @@ exports.getByUserIdForPortal = (userId) =>
         "meta.isActive": true,
       }).sort({ updatedAt: -1, createdAt: -1 });
 
-      console.log("[getByUserIdForPortal] Query result:", result ? "Found" : "Not found");
-      
       resolve(result);
     } catch (error) {
       console.error(
-        "PersonalDetailsHandler [getByUserIdForPortal] Error:",
+        "PersonalDetailsHandler [getActiveByUserIdForPortal] Error:",
         error
       );
       reject(error);

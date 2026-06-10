@@ -108,12 +108,9 @@ class ApplicationStatusUpdateListener {
       const currentStatus = (
         personalDetails.applicationStatus || ""
       ).toLowerCase();
-      if (
-        currentStatus === APPLICATION_STATUS.REJECTED ||
-        currentStatus === APPLICATION_STATUS.APPROVED
-      ) {
+      if (currentStatus === APPLICATION_STATUS.APPROVED) {
         console.log(
-          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already in terminal state",
+          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already approved",
           {
             applicationId,
             applicationStatus: personalDetails.applicationStatus,
@@ -122,6 +119,10 @@ class ApplicationStatusUpdateListener {
         return;
       }
 
+      const isReapplication =
+        currentStatus === APPLICATION_STATUS.REJECTED ||
+        personalDetails.meta?.isActive === false;
+
       // 2. Update application status to "submitted" when payment is captured
       // All payment-captured statuses ("submitted", "paid", "succeeded", "completed")
       // should be converted to APPLICATION_STATUS.SUBMITTED enum value
@@ -129,7 +130,21 @@ class ApplicationStatusUpdateListener {
 
       const updateData = {
         applicationStatus: targetStatus,
+        "meta.isActive": true,
       };
+
+      if (isReapplication) {
+        updateData.approvalDetails = {
+          approvedBy: null,
+          approvedAt: null,
+          rejectionReason: null,
+          comments: null,
+        };
+        console.log(
+          "🔄 [STATUS_UPDATE_LISTENER] Re-application detected — resetting rejection metadata before submit",
+          { applicationId }
+        );
+      }
 
       console.log("📝 [STATUS_UPDATE_LISTENER] Updating application status:", {
         applicationId,

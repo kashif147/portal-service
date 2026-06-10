@@ -80,15 +80,10 @@ exports.createPersonalDetails = async (req, res, next) => {
           AppError.badRequest("User ID is required for portal users")
         );
       }
-      const existingPersonalDetails = await personalDetailsHandler.getByUserId(
-        userId
-      );
-      const hasActiveApplication =
-        existingPersonalDetails &&
-        (existingPersonalDetails.meta?.isActive === undefined ||
-          existingPersonalDetails.meta?.isActive === true);
+      const existingPersonalDetails =
+        await personalDetailsHandler.getActiveByUserIdForPortal(userId);
 
-      if (hasActiveApplication) {
+      if (existingPersonalDetails) {
         return next(
           AppError.conflict(
             "Personal details already exist, please update existing details"
