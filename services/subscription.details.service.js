@@ -153,7 +153,8 @@ class SubscriptionDetailsService {
     applicationId,
     userId,
     userType,
-    tenantId
+    tenantId,
+    req = null
   ) {
     try {
       if (!data) {
@@ -222,9 +223,10 @@ class SubscriptionDetailsService {
         updateData.subscriptionDetails = enforcePaymentFrequencyRule(
           updateData.subscriptionDetails
         );
-        assertSalaryDeductionAllowedForWorkLocation(
+        await assertSalaryDeductionAllowedForWorkLocation(
           updateData.subscriptionDetails,
-          professionalDetails?.professionalDetails
+          professionalDetails?.professionalDetails,
+          { req, tenantId }
         );
 
         const result = await subscriptionDetailsHandler.updateByApplicationId(
@@ -289,9 +291,10 @@ class SubscriptionDetailsService {
       createData.subscriptionDetails = enforcePaymentFrequencyRule(
         createData.subscriptionDetails
       );
-      assertSalaryDeductionAllowedForWorkLocation(
+      await assertSalaryDeductionAllowedForWorkLocation(
         createData.subscriptionDetails,
         professionalDetails?.professionalDetails,
+        { req, tenantId }
       );
 
       // Ensure submissionDate is set when subscription details are created
@@ -364,7 +367,13 @@ class SubscriptionDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Updated subscription details
    */
-  async updateSubscriptionDetails(applicationId, updateData, userId, userType) {
+  async updateSubscriptionDetails(
+    applicationId,
+    updateData,
+    userId,
+    userType,
+    req = null
+  ) {
     try {
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
@@ -412,9 +421,17 @@ class SubscriptionDetailsService {
         safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
           mergedSubscriptionDetails,
         );
-        assertSalaryDeductionAllowedForWorkLocation(
+        await assertSalaryDeductionAllowedForWorkLocation(
           safeUpdateData.subscriptionDetails,
           professionalDetails?.professionalDetails,
+          {
+            req,
+            tenantId:
+              req?.tenantId ||
+              req?.ctx?.tenantId ||
+              existingDetails?.tenantId ||
+              "",
+          }
         );
       }
 

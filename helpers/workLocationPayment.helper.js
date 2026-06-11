@@ -1,5 +1,8 @@
 const { PAYMENT_TYPE } = require("../constants/enums");
 const { AppError } = require("../errors/AppError");
+const {
+  isSalaryDeductionEnabledForWorkLocation,
+} = require("../services/lookup.service.client");
 
 const normalizeKey = (value) =>
   String(value || "")
@@ -13,9 +16,10 @@ function isSalaryDeductionPaymentType(paymentType) {
   );
 }
 
-function assertSalaryDeductionAllowedForWorkLocation(
+async function assertSalaryDeductionAllowedForWorkLocation(
   subscriptionDetails,
   professionalDetails,
+  { req = null, tenantId = "" } = {}
 ) {
   if (
     !subscriptionDetails ||
@@ -25,13 +29,16 @@ function assertSalaryDeductionAllowedForWorkLocation(
   }
 
   const workLocation = String(professionalDetails?.workLocation || "").trim();
-  const allows = !!subscriptionDetails?.processSalaryDeduction;
+  const allows = await isSalaryDeductionEnabledForWorkLocation(workLocation, {
+    req,
+    tenantId,
+  });
 
   if (!allows) {
     throw AppError.badRequest(
       workLocation
         ? `Salary Deduction is not enabled for work location "${workLocation}"`
-        : "Salary Deduction requires a work location with payroll deduction enabled",
+        : "Salary Deduction requires a work location with payroll deduction enabled"
     );
   }
 }

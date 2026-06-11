@@ -202,7 +202,7 @@ module.exports.subscription_details_create = Joi.object({
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),
-    processSalaryDeduction: Joi.boolean().optional().default(false),
+    processSalaryDeduction: Joi.any().strip(),
   }),
 });
 
@@ -236,6 +236,6 @@ module.exports.subscription_details_update = Joi.object({
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),
-    processSalaryDeduction: Joi.boolean().optional().default(false),
+    processSalaryDeduction: Joi.any().strip(),
   }),
 });
