@@ -232,11 +232,23 @@ class ProfessionalDetailsService {
         throw AppError.badRequest("Update data is required");
       }
 
+      const personalDetails = await personalDetailsHandler.getApplicationById(
+        applicationId
+      );
+      if (!personalDetails) {
+        throw AppError.notFound("Application not found");
+      }
+
+      if (isReapplyApplication(personalDetails)) {
+        await reactivatePersonalApplicationForReapply(applicationId);
+      }
+
       const updatePayload = attachMembershipCategoryToProfessionalData(
         {
           ...updateData,
           "meta.updatedBy": userId,
           "meta.userType": userType,
+          "meta.isActive": true,
         },
         membershipCategory
       );
@@ -248,12 +260,35 @@ class ProfessionalDetailsService {
           updatePayload
         );
       } else {
-        result =
-          await professionalDetailsHandler.updateByUserIdAndApplicationId(
-            userId,
-            applicationId,
-            updatePayload
+        const existingProfessional =
+          await professionalDetailsHandler.getByApplicationId(applicationId);
+
+        if (!existingProfessional) {
+          if (personalDetails.userId?.toString() !== userId?.toString()) {
+            throw AppError.forbidden(
+              "Access denied. You can only update professional details for your own applications."
+            );
+          }
+
+          result = await professionalDetailsHandler.create(
+            attachMembershipCategoryToProfessionalData(
+              {
+                ...updateData,
+                applicationId,
+                userId,
+                meta: { createdBy: userId, userType },
+              },
+              membershipCategory
+            )
           );
+        } else {
+          result =
+            await professionalDetailsHandler.updateByUserIdAndApplicationId(
+              userId,
+              applicationId,
+              updatePayload
+            );
+        }
       }
 
       await syncMembershipCategoryToSubscription({

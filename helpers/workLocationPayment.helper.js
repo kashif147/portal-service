@@ -12,14 +12,27 @@ const normalizeKey = (value) =>
 function isSalaryDeductionPaymentType(paymentType) {
   const key = normalizeKey(paymentType);
   return (
-    paymentType === PAYMENT_TYPE.PAYROLL_DEDUCTION || key === "salary deduction"
+    paymentType === PAYMENT_TYPE.PAYROLL_DEDUCTION ||
+    key === "salary deduction" ||
+    key === "payroll deduction"
   );
+}
+
+function mergeProfessionalContextForPaymentValidation(
+  storedProfessionalDetails,
+  override = {}
+) {
+  const fromDb =
+    storedProfessionalDetails?.professionalDetails ||
+    storedProfessionalDetails ||
+    {};
+  return { ...fromDb, ...(override || {}) };
 }
 
 async function assertSalaryDeductionAllowedForWorkLocation(
   subscriptionDetails,
   professionalDetails,
-  { req = null, tenantId = "" } = {}
+  { req = null, tenantId = "", professionalDetailsOverride = {} } = {}
 ) {
   if (
     !subscriptionDetails ||
@@ -28,7 +41,11 @@ async function assertSalaryDeductionAllowedForWorkLocation(
     return;
   }
 
-  const workLocation = String(professionalDetails?.workLocation || "").trim();
+  const mergedProfessional = mergeProfessionalContextForPaymentValidation(
+    professionalDetails,
+    professionalDetailsOverride
+  );
+  const workLocation = String(mergedProfessional?.workLocation || "").trim();
   const allows = await isSalaryDeductionEnabledForWorkLocation(workLocation, {
     req,
     tenantId,
@@ -43,6 +60,27 @@ async function assertSalaryDeductionAllowedForWorkLocation(
   }
 }
 
+async function resolveProfessionalDetailsForPaymentValidation(
+  applicationId,
+  professionalDetailsHandler,
+  { req = null, professionalDetailsOverride = {} } = {}
+) {
+  let record = null;
+  if (applicationId && professionalDetailsHandler?.getByApplicationId) {
+    record = await professionalDetailsHandler.getByApplicationId(applicationId);
+  }
+
+  return mergeProfessionalContextForPaymentValidation(
+    record?.professionalDetails || record,
+    {
+      ...(professionalDetailsOverride || {}),
+      ...(req?.body?.professionalDetails || {}),
+    }
+  );
+}
+
 module.exports = {
   assertSalaryDeductionAllowedForWorkLocation,
+  mergeProfessionalContextForPaymentValidation,
+  resolveProfessionalDetailsForPaymentValidation,
 };

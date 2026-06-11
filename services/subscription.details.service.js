@@ -218,14 +218,21 @@ class SubscriptionDetailsService {
         } = require("../helpers/payment.frequency.helper.js");
         const {
           assertSalaryDeductionAllowedForWorkLocation,
+          resolveProfessionalDetailsForPaymentValidation,
         } = require("../helpers/workLocationPayment.helper.js");
 
         updateData.subscriptionDetails = enforcePaymentFrequencyRule(
           updateData.subscriptionDetails
         );
+        const professionalContext =
+          await resolveProfessionalDetailsForPaymentValidation(
+            applicationId,
+            professionalDetailsHandler,
+            { req }
+          );
         await assertSalaryDeductionAllowedForWorkLocation(
           updateData.subscriptionDetails,
-          professionalDetails?.professionalDetails,
+          professionalContext,
           { req, tenantId }
         );
 
@@ -286,14 +293,21 @@ class SubscriptionDetailsService {
       } = require("../helpers/payment.frequency.helper.js");
       const {
         assertSalaryDeductionAllowedForWorkLocation,
+        resolveProfessionalDetailsForPaymentValidation,
       } = require("../helpers/workLocationPayment.helper.js");
 
       createData.subscriptionDetails = enforcePaymentFrequencyRule(
         createData.subscriptionDetails
       );
+      const professionalContext =
+        await resolveProfessionalDetailsForPaymentValidation(
+          applicationId,
+          professionalDetailsHandler,
+          { req }
+        );
       await assertSalaryDeductionAllowedForWorkLocation(
         createData.subscriptionDetails,
-        professionalDetails?.professionalDetails,
+        professionalContext,
         { req, tenantId }
       );
 
@@ -407,11 +421,10 @@ class SubscriptionDetailsService {
         } = require("../helpers/payment.frequency.helper.js");
         const {
           assertSalaryDeductionAllowedForWorkLocation,
+          resolveProfessionalDetailsForPaymentValidation,
         } = require("../helpers/workLocationPayment.helper.js");
-        const [professionalDetails, existingDetails] = await Promise.all([
-          professionalDetailsHandler.getByApplicationId(applicationId),
-          subscriptionDetailsHandler.getByApplicationId(applicationId),
-        ]);
+        const existingDetails =
+          await subscriptionDetailsHandler.getByApplicationId(applicationId);
 
         const mergedSubscriptionDetails = {
           ...(existingDetails?.subscriptionDetails || {}),
@@ -421,9 +434,15 @@ class SubscriptionDetailsService {
         safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
           mergedSubscriptionDetails,
         );
+        const professionalContext =
+          await resolveProfessionalDetailsForPaymentValidation(
+            applicationId,
+            professionalDetailsHandler,
+            { req }
+          );
         await assertSalaryDeductionAllowedForWorkLocation(
           safeUpdateData.subscriptionDetails,
-          professionalDetails?.professionalDetails,
+          professionalContext,
           {
             req,
             tenantId:

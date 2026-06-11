@@ -173,6 +173,11 @@ module.exports.professional_details_update = Joi.object({
 });
 
 module.exports.subscription_details_create = Joi.object({
+  professionalDetails: Joi.object({
+    workLocation: Joi.string().optional().allow(null, ""),
+    branch: Joi.string().optional().allow(null, ""),
+    region: Joi.string().optional().allow(null, ""),
+  }).optional(),
   subscriptionDetails: Joi.object({
     previousMembershipNo: Joi.any().strip(),
     joinYouthForum: Joi.any().strip(),
@@ -207,6 +212,11 @@ module.exports.subscription_details_create = Joi.object({
 });
 
 module.exports.subscription_details_update = Joi.object({
+  professionalDetails: Joi.object({
+    workLocation: Joi.string().optional().allow(null, ""),
+    branch: Joi.string().optional().allow(null, ""),
+    region: Joi.string().optional().allow(null, ""),
+  }).optional(),
   subscriptionDetails: Joi.object({
     previousMembershipNo: Joi.any().strip(),
     joinYouthForum: Joi.any().strip(),

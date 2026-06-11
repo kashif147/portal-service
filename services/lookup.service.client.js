@@ -46,6 +46,7 @@ function matchesWorkLocationLookup(lookup, workLocationKey) {
   const candidates = [
     lookup._id,
     lookup.id,
+    lookup.code,
     lookup.lookupname,
     lookup.DisplayName,
     lookup.displayName,
