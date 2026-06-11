@@ -6,6 +6,9 @@ const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const { APPLICATION_STATUS } = require("../constants/enums");
 const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
+const {
+  pickRequestedSubscriptionDetails,
+} = require("../helpers/membershipCategory.helper.js");
 
 // Function to extract professional details for subscription
 // const extractProfessionalDetailsForSubscription = async (userId) => {
@@ -106,8 +109,10 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
       return next(AppError.badRequest("Application ID is required"));
     }
 
-    const validatedData =
-      await joischemas.subscription_details_update.validateAsync(req.body);
+    const validatedData = pickRequestedSubscriptionDetails(
+      await joischemas.subscription_details_update.validateAsync(req.body),
+      req.body
+    );
     const updatePayload = {
       ...validatedData,
       "meta.updatedBy": creatorId,

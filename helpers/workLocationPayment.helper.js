@@ -25,7 +25,7 @@ function assertSalaryDeductionAllowedForWorkLocation(
   }
 
   const workLocation = String(professionalDetails?.workLocation || "").trim();
-  const allows = !!professionalDetails?.processSalaryDeduction;
+  const allows = !!subscriptionDetails?.processSalaryDeduction;
 
   if (!allows) {
     throw AppError.badRequest(

@@ -96,8 +96,8 @@ module.exports.application_approve = Joi.object({
 module.exports.professional_details_create = Joi.object({
   professionalDetails: Joi.object({
     membershipCategory: Joi.any().strip(),
+    processSalaryDeduction: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
-    processSalaryDeduction: Joi.boolean().optional().default(false),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
@@ -122,6 +122,13 @@ module.exports.professional_details_create = Joi.object({
     graduationDate: Joi.date().iso().optional().default(null),
     otherGraduationDate: Joi.date().iso().optional().default(null),
     discipline: Joi.string().optional().default(null),
+    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
+    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
+    youthForum: Joi.when("joinYouthForum", {
+      is: true,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
     submissionDate: Joi.date().iso().optional().default(Date.now),
   }),
 });
@@ -129,8 +136,8 @@ module.exports.professional_details_create = Joi.object({
 module.exports.professional_details_update = Joi.object({
   professionalDetails: Joi.object({
     membershipCategory: Joi.any().strip(),
+    processSalaryDeduction: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
-    processSalaryDeduction: Joi.boolean().optional().default(false),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
@@ -155,6 +162,13 @@ module.exports.professional_details_update = Joi.object({
     graduationDate: Joi.date().iso().optional().default(null),
     otherGraduationDate: Joi.date().iso().optional().default(null),
     discipline: Joi.string().optional().default(null),
+    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
+    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
+    youthForum: Joi.when("joinYouthForum", {
+      is: true,
+      then: Joi.string().trim().required(),
+      otherwise: Joi.string().allow(null, "").optional().default(null),
+    }),
   }),
 });
 
@@ -165,13 +179,6 @@ module.exports.subscription_details_create = Joi.object({
       .optional(),
     payrollNo: Joi.string().optional().default(null),
     membershipStatus: Joi.string().optional().default(null),
-    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
-    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
-    youthForum: Joi.when("joinYouthForum", {
-      is: true,
-      then: Joi.string().trim().required(),
-      otherwise: Joi.string().allow(null, "").optional().default(null),
-    }),
     otherIrishTradeUnion: Joi.boolean().optional().default(false),
     otherIrishTradeUnionName: Joi.string().optional().default(null),
     otherScheme: Joi.boolean().optional().default(false),
@@ -192,6 +199,7 @@ module.exports.subscription_details_create = Joi.object({
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),
+    processSalaryDeduction: Joi.boolean().optional().default(false),
   }),
 });
 
@@ -202,13 +210,6 @@ module.exports.subscription_details_update = Joi.object({
       .optional(),
     payrollNo: Joi.string().optional().default(null),
     membershipStatus: Joi.string().optional().default(null),
-    previousMembershipNo: Joi.string().optional().allow(null, "").default(null),
-    joinYouthForum: Joi.boolean().optional().allow(null).default(null),
-    youthForum: Joi.when("joinYouthForum", {
-      is: true,
-      then: Joi.string().trim().required(),
-      otherwise: Joi.string().allow(null, "").optional().default(null),
-    }),
     otherIrishTradeUnion: Joi.boolean().optional().default(false),
     otherIrishTradeUnionName: Joi.string().optional().default(null),
     otherScheme: Joi.boolean().optional().default(false),
@@ -229,5 +230,6 @@ module.exports.subscription_details_update = Joi.object({
     paymentFrequency: Joi.string()
       .valid(...Object.values(PAYMENT_FREQUENCY))
       .optional(),
+    processSalaryDeduction: Joi.boolean().optional().default(false),
   }),
 });

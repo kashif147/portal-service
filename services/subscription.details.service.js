@@ -176,88 +176,74 @@ class SubscriptionDetailsService {
       const existingDetails =
         await subscriptionDetailsHandler.getByApplicationId(applicationId);
       if (existingDetails) {
-        const isReapply =
-          existingDetails.meta?.isActive === false ||
-          isReapplyApplication(personalDetails);
+        if (userType !== "CRM") {
+          if (personalDetails.userId?.toString() !== userId?.toString()) {
+            throw AppError.forbidden(
+              "Access denied. You can only update subscription details for your own applications."
+            );
+          }
+        }
 
-        if (isReapply) {
+        if (isReapplyApplication(personalDetails)) {
           await reactivatePersonalApplicationForReapply(applicationId);
+        }
 
-          const professionalDetails =
-            await professionalDetailsHandler.getByApplicationId(applicationId);
-          const membershipCategoryFromProfessional =
-            professionalDetails?.professionalDetails?.membershipCategory ??
-            null;
+        const professionalDetails =
+          await professionalDetailsHandler.getByApplicationId(applicationId);
+        const membershipCategoryFromProfessional =
+          professionalDetails?.professionalDetails?.membershipCategory ?? null;
 
-          const updateData = {
-            ...data,
-            "meta.updatedBy": userId,
-            "meta.userType": userType,
-            "meta.isActive": true,
-          };
+        const updateData = {
+          ...data,
+          "meta.updatedBy": userId,
+          "meta.userType": userType,
+          "meta.isActive": true,
+        };
 
-          if (!updateData.subscriptionDetails) {
-            updateData.subscriptionDetails = {};
-          }
+        if (!updateData.subscriptionDetails) {
+          updateData.subscriptionDetails = {};
+        }
 
-          if (
-            updateData.subscriptionDetails.membershipCategory == null &&
-            membershipCategoryFromProfessional != null
-          ) {
-            updateData.subscriptionDetails.membershipCategory =
-              membershipCategoryFromProfessional;
-          }
+        if (
+          updateData.subscriptionDetails.membershipCategory == null &&
+          membershipCategoryFromProfessional != null
+        ) {
+          updateData.subscriptionDetails.membershipCategory =
+            membershipCategoryFromProfessional;
+        }
 
-          const {
-            enforcePaymentFrequencyRule,
-          } = require("../helpers/payment.frequency.helper.js");
-          const {
-            assertSalaryDeductionAllowedForWorkLocation,
-          } = require("../helpers/workLocationPayment.helper.js");
+        const {
+          enforcePaymentFrequencyRule,
+        } = require("../helpers/payment.frequency.helper.js");
+        const {
+          assertSalaryDeductionAllowedForWorkLocation,
+        } = require("../helpers/workLocationPayment.helper.js");
 
-          updateData.subscriptionDetails = enforcePaymentFrequencyRule(
-            updateData.subscriptionDetails
-          );
-          assertSalaryDeductionAllowedForWorkLocation(
-            updateData.subscriptionDetails,
-            professionalDetails?.professionalDetails
-          );
+        updateData.subscriptionDetails = enforcePaymentFrequencyRule(
+          updateData.subscriptionDetails
+        );
+        assertSalaryDeductionAllowedForWorkLocation(
+          updateData.subscriptionDetails,
+          professionalDetails?.professionalDetails
+        );
 
-          let result;
-          if (userType === "CRM") {
-            result = await subscriptionDetailsHandler.updateByApplicationId(
-              applicationId,
-              updateData
-            );
-          } else {
-            result =
-              await subscriptionDetailsHandler.updateByUserIdAndApplicationId(
-                userId,
-                applicationId,
-                updateData
-              );
-          }
+        const result = await subscriptionDetailsHandler.updateByApplicationId(
+          applicationId,
+          updateData
+        );
 
-          if (!updateData.subscriptionDetails?.submissionDate) {
-            await subscriptionDetailsHandler.updateByApplicationId(
-              applicationId,
-              {
-                "subscriptionDetails.submissionDate": new Date(),
-              }
-            );
-          }
-
-          return handlePostSubscriptionSubmission({
-            result,
-            applicationId,
-            professionalDetails,
-            tenantId,
+        if (!updateData.subscriptionDetails?.submissionDate) {
+          await subscriptionDetailsHandler.updateByApplicationId(applicationId, {
+            "subscriptionDetails.submissionDate": new Date(),
           });
         }
 
-        throw AppError.conflict(
-          "Subscription details already exist for this application, please update existing details"
-        );
+        return handlePostSubscriptionSubmission({
+          result,
+          applicationId,
+          professionalDetails,
+          tenantId,
+        });
       }
 
       // Validate user permissions for PORTAL users

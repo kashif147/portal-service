@@ -48,6 +48,32 @@ exports.updateByApplicationId = (applicationId, updateData) =>
     }
   });
 
+exports.unsetLegacyProfessionalFieldsByApplicationId = (applicationId) =>
+  new Promise(async (resolve, reject) => {
+    try {
+      const existing = await SubscriptionDetails.findOne({ applicationId });
+      if (!existing) return resolve(false);
+
+      await SubscriptionDetails.collection.updateOne(
+        { _id: existing._id },
+        {
+          $unset: {
+            "subscriptionDetails.previousMembershipNo": "",
+            "subscriptionDetails.joinYouthForum": "",
+            "subscriptionDetails.youthForum": "",
+          },
+        },
+      );
+      resolve(true);
+    } catch (error) {
+      console.error(
+        "SubscriptionDetailsHandler [unsetLegacyProfessionalFieldsByApplicationId] Error:",
+        error,
+      );
+      reject(error);
+    }
+  });
+
 exports.deleteByApplicationId = (applicationId) =>
   new Promise(async (resolve, reject) => {
     try {

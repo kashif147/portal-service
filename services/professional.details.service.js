@@ -5,8 +5,19 @@ const { AppError } = require("../errors/AppError");
 const {
   attachMembershipCategoryToProfessionalData,
   enrichProfessionalWithSubscriptionMembershipCategory,
+  professionalPayloadIncludesMigratedFields,
   syncMembershipCategoryToSubscription,
 } = require("../helpers/membershipCategory.helper.js");
+
+async function clearLegacyProfessionalFieldsFromSubscription(
+  applicationId,
+  professionalPayload = {},
+) {
+  if (!professionalPayloadIncludesMigratedFields(professionalPayload)) return;
+  await subscriptionDetailsHandler.unsetLegacyProfessionalFieldsByApplicationId(
+    applicationId,
+  );
+}
 const {
   isReapplyApplication,
   reactivatePersonalApplicationForReapply,
@@ -49,58 +60,54 @@ class ProfessionalDetailsService {
         throw AppError.notFound("Application not found");
       }
 
-      // Check if professional details already exist
+      // Upsert: if professional details already exist for this application,
+      // update them instead of returning 409 (handles re-apply and stale POSTs).
       const existingDetails =
         await professionalDetailsHandler.getByApplicationId(applicationId);
       if (existingDetails) {
-        const isReapply =
-          existingDetails.meta?.isActive === false ||
-          isReapplyApplication(personalDetails);
-
-        if (isReapply) {
-          await reactivatePersonalApplicationForReapply(applicationId);
-
-          const updatePayload = attachMembershipCategoryToProfessionalData(
-            {
-              ...data,
-              "meta.updatedBy": userId,
-              "meta.userType": userType,
-              "meta.isActive": true,
-            },
-            membershipCategory
-          );
-
-          let result;
-          if (userType === "CRM") {
-            result = await professionalDetailsHandler.updateByApplicationId(
-              applicationId,
-              updatePayload
+        if (userType !== "CRM") {
+          if (personalDetails.userId?.toString() !== userId?.toString()) {
+            throw AppError.forbidden(
+              "Access denied. You can only update professional details for your own applications."
             );
-          } else {
-            result =
-              await professionalDetailsHandler.updateByUserIdAndApplicationId(
-                userId,
-                applicationId,
-                updatePayload
-              );
           }
-
-          await syncMembershipCategoryToSubscription({
-            applicationId,
-            membershipCategory,
-            userId,
-            userType,
-            subscriptionDetailsHandler,
-          });
-
-          return enrichProfessionalWithSubscriptionMembershipCategory(
-            result,
-            await subscriptionDetailsHandler.getByApplicationId(applicationId)
-          );
         }
 
-        throw AppError.conflict(
-          "Professional details already exist for this application, please update existing details"
+        if (isReapplyApplication(personalDetails)) {
+          await reactivatePersonalApplicationForReapply(applicationId);
+        }
+
+        const updatePayload = attachMembershipCategoryToProfessionalData(
+          {
+            ...data,
+            "meta.updatedBy": userId,
+            "meta.userType": userType,
+            "meta.isActive": true,
+          },
+          membershipCategory
+        );
+
+        const result = await professionalDetailsHandler.updateByApplicationId(
+          applicationId,
+          updatePayload
+        );
+
+        await syncMembershipCategoryToSubscription({
+          applicationId,
+          membershipCategory,
+          userId,
+          userType,
+          subscriptionDetailsHandler,
+        });
+
+        await clearLegacyProfessionalFieldsFromSubscription(
+          applicationId,
+          data?.professionalDetails,
+        );
+
+        return await enrichProfessionalWithSubscriptionMembershipCategory(
+          result,
+          await subscriptionDetailsHandler.getByApplicationId(applicationId),
         );
       }
 
@@ -132,6 +139,11 @@ class ProfessionalDetailsService {
         userType,
         subscriptionDetailsHandler,
       });
+
+      await clearLegacyProfessionalFieldsFromSubscription(
+        applicationId,
+        data?.professionalDetails,
+      );
 
       return result;
     } catch (error) {
@@ -183,9 +195,9 @@ class ProfessionalDetailsService {
       const subscriptionDetails =
         await subscriptionDetailsHandler.getByApplicationId(applicationId);
 
-      return enrichProfessionalWithSubscriptionMembershipCategory(
+      return await enrichProfessionalWithSubscriptionMembershipCategory(
         professionalDetails,
-        subscriptionDetails
+        subscriptionDetails,
       );
     } catch (error) {
       console.error(
@@ -252,9 +264,14 @@ class ProfessionalDetailsService {
         subscriptionDetailsHandler,
       });
 
-      return enrichProfessionalWithSubscriptionMembershipCategory(
+      await clearLegacyProfessionalFieldsFromSubscription(
+        applicationId,
+        updateData?.professionalDetails,
+      );
+
+      return await enrichProfessionalWithSubscriptionMembershipCategory(
         result,
-        await subscriptionDetailsHandler.getByApplicationId(applicationId)
+        await subscriptionDetailsHandler.getByApplicationId(applicationId),
       );
     } catch (error) {
       console.error(
@@ -322,9 +339,9 @@ class ProfessionalDetailsService {
           )
         : null;
 
-      return enrichProfessionalWithSubscriptionMembershipCategory(
+      return await enrichProfessionalWithSubscriptionMembershipCategory(
         professionalDetails,
-        subscriptionDetails
+        subscriptionDetails,
       );
     } catch (error) {
       console.error(

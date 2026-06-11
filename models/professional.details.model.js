@@ -12,7 +12,6 @@ const ProfessionalSchema = new mongoose.Schema(
     professionalDetails: {
       membershipCategory: { type: String, allowNull: true },
       workLocation: { type: String, allowNull: true },
-      processSalaryDeduction: { type: Boolean, default: false },
       otherWorkLocation: { type: String, allowNull: true },
       grade: { type: String, allowNull: true },
       otherGrade: { type: String, allowNull: true },
@@ -28,6 +27,9 @@ const ProfessionalSchema = new mongoose.Schema(
       startDate: { type: Date, allowNull: true },
       graduationDate: { type: Date, allowNull: true },
       discipline: { type: String, allowNull: true },
+      previousMembershipNo: { type: String, allowNull: true },
+      joinYouthForum: { type: Boolean, default: null },
+      youthForum: { type: String, allowNull: true },
     },
 
     meta: {

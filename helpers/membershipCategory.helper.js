@@ -24,28 +24,120 @@ function attachMembershipCategoryToProfessionalData(data, membershipCategory) {
   return next;
 }
 
-function enrichProfessionalWithSubscriptionMembershipCategory(
+const LEGACY_PROFESSIONAL_FIELDS_FROM_SUBSCRIPTION = [
+  "previousMembershipNo",
+  "joinYouthForum",
+  "youthForum",
+];
+
+function mergeLegacyProfessionalFieldsFromSubscription(
+  professionalDetails = {},
+  legacySubscriptionFields = {},
+) {
+  const merged = { ...professionalDetails };
+  const sub = legacySubscriptionFields || {};
+  for (const key of LEGACY_PROFESSIONAL_FIELDS_FROM_SUBSCRIPTION) {
+    const prof = merged[key];
+    if (prof != null && prof !== "") continue;
+    const v = sub[key];
+    if (v != null && v !== "") {
+      merged[key] = v;
+    } else if (typeof v === "boolean" && prof == null) {
+      merged[key] = v;
+    }
+  }
+  return merged;
+}
+
+async function readLegacyProfessionalFieldsFromSubscriptionRecord(
+  subscriptionRecord,
+) {
+  if (!subscriptionRecord?._id) return {};
+
+  const SubscriptionDetails = require("../models/subscription.model");
+  const raw = await SubscriptionDetails.collection.findOne(
+    { _id: subscriptionRecord._id },
+    {
+      projection: {
+        "subscriptionDetails.previousMembershipNo": 1,
+        "subscriptionDetails.joinYouthForum": 1,
+        "subscriptionDetails.youthForum": 1,
+      },
+    },
+  );
+  const sub = raw?.subscriptionDetails || {};
+  const legacy = {};
+  for (const key of LEGACY_PROFESSIONAL_FIELDS_FROM_SUBSCRIPTION) {
+    if (sub[key] !== undefined) legacy[key] = sub[key];
+  }
+  return legacy;
+}
+
+function professionalPayloadIncludesMigratedFields(professionalDetails = {}) {
+  return LEGACY_PROFESSIONAL_FIELDS_FROM_SUBSCRIPTION.some((key) =>
+    Object.prototype.hasOwnProperty.call(professionalDetails, key),
+  );
+}
+
+async function enrichProfessionalWithSubscriptionMembershipCategory(
   professionalDoc,
-  subscriptionDoc
+  subscriptionDoc,
 ) {
   if (!professionalDoc) return professionalDoc;
 
+  const plain = professionalDoc.toObject?.() ?? professionalDoc;
+  const legacyFields = await readLegacyProfessionalFieldsFromSubscriptionRecord(
+    subscriptionDoc,
+  );
+  const enrichedProfessionalDetails = mergeLegacyProfessionalFieldsFromSubscription(
+    plain.professionalDetails || {},
+    legacyFields,
+  );
+
   const subscriptionCategory = normalizeMembershipCategory(
-    subscriptionDoc?.subscriptionDetails?.membershipCategory
+    subscriptionDoc?.subscriptionDetails?.membershipCategory,
   );
   const professionalCategory = normalizeMembershipCategory(
-    professionalDoc?.professionalDetails?.membershipCategory
+    enrichedProfessionalDetails.membershipCategory,
   );
-
   const membershipCategory = subscriptionCategory || professionalCategory;
-  if (!membershipCategory) return professionalDoc;
 
   return {
-    ...(professionalDoc.toObject?.() ?? professionalDoc),
+    ...plain,
     professionalDetails: {
-      ...(professionalDoc.professionalDetails || {}),
-      membershipCategory,
+      ...enrichedProfessionalDetails,
+      ...(membershipCategory ? { membershipCategory } : {}),
     },
+  };
+}
+
+/**
+ * Joi update schemas apply .default() to omitted keys. Only merge subscription
+ * fields the client actually sent so we do not wipe stored values.
+ */
+function pickRequestedSubscriptionDetails(validatedData, rawBody) {
+  if (!validatedData?.subscriptionDetails) return validatedData;
+
+  const rawSub = rawBody?.subscriptionDetails || {};
+  const requestedKeys = Object.keys(rawSub);
+  if (requestedKeys.length === 0) return validatedData;
+
+  const partial = {};
+  for (const key of requestedKeys) {
+    if (!Object.prototype.hasOwnProperty.call(rawSub, key)) continue;
+    if (
+      Object.prototype.hasOwnProperty.call(
+        validatedData.subscriptionDetails,
+        key
+      )
+    ) {
+      partial[key] = validatedData.subscriptionDetails[key];
+    }
+  }
+
+  return {
+    ...validatedData,
+    subscriptionDetails: partial,
   };
 }
 
@@ -75,6 +167,11 @@ module.exports = {
   normalizeMembershipCategory,
   extractMembershipCategoryFromRequestBody,
   attachMembershipCategoryToProfessionalData,
+  LEGACY_PROFESSIONAL_FIELDS_FROM_SUBSCRIPTION,
+  mergeLegacyProfessionalFieldsFromSubscription,
+  readLegacyProfessionalFieldsFromSubscriptionRecord,
+  professionalPayloadIncludesMigratedFields,
   enrichProfessionalWithSubscriptionMembershipCategory,
+  pickRequestedSubscriptionDetails,
   syncMembershipCategoryToSubscription,
 };

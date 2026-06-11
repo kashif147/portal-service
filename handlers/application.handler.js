@@ -6,6 +6,33 @@ const {
   stampPersonalInfoFullName,
   enrichApplicationRowPersonalFullName,
 } = require("../helpers/personal.info.fullName.js");
+const {
+  mergeLegacyProfessionalFieldsFromSubscription,
+  readLegacyProfessionalFieldsFromSubscriptionRecord,
+} = require("../helpers/membershipCategory.helper.js");
+
+async function buildProfessionalPayload(
+  professionalDetails,
+  membershipCategory,
+  subscriptionDetails,
+) {
+  if (!professionalDetails) {
+    return membershipCategory !== null ? { membershipCategory } : null;
+  }
+
+  const legacyFields = await readLegacyProfessionalFieldsFromSubscriptionRecord(
+    subscriptionDetails,
+  );
+  const mergedProfessional = mergeLegacyProfessionalFieldsFromSubscription(
+    { ...(professionalDetails.professionalDetails || {}) },
+    legacyFields,
+  );
+
+  return {
+    ...mergedProfessional,
+    membershipCategory,
+  };
+}
 
 exports.getAllApplications = (statusFilters = []) =>
   new Promise(async (resolve, reject) => {
@@ -144,14 +171,11 @@ exports.getApplicationWithDetails = (applicationId) =>
         professionalDetails?.professionalDetails?.membershipCategory ??
         null;
 
-      const professionalPayload = professionalDetails
-        ? {
-            ...professionalDetails.professionalDetails,
-            membershipCategory,
-          }
-        : membershipCategory !== null
-        ? { membershipCategory }
-        : null;
+      const professionalPayload = await buildProfessionalPayload(
+        professionalDetails,
+        membershipCategory,
+        subscriptionDetails,
+      );
 
       const subscriptionPayload = subscriptionDetails
         ? {
@@ -222,14 +246,11 @@ exports.getAllApplicationsWithDetails = (statusFilters = []) =>
               professionalDetails?.professionalDetails?.membershipCategory ??
               null;
 
-            const professionalPayload = professionalDetails
-              ? {
-                  ...professionalDetails.professionalDetails,
-                  membershipCategory,
-                }
-              : membershipCategory !== null
-              ? { membershipCategory }
-              : null;
+            const professionalPayload = await buildProfessionalPayload(
+              professionalDetails,
+              membershipCategory,
+              subscriptionDetails,
+            );
 
             const subscriptionPayload = subscriptionDetails
               ? {
