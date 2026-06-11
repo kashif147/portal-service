@@ -174,6 +174,9 @@ module.exports.professional_details_update = Joi.object({
 
 module.exports.subscription_details_create = Joi.object({
   subscriptionDetails: Joi.object({
+    previousMembershipNo: Joi.any().strip(),
+    joinYouthForum: Joi.any().strip(),
+    youthForum: Joi.any().strip(),
     paymentType: Joi.string()
       .valid(...Object.values(PAYMENT_TYPE))
       .optional(),
@@ -205,6 +208,9 @@ module.exports.subscription_details_create = Joi.object({
 
 module.exports.subscription_details_update = Joi.object({
   subscriptionDetails: Joi.object({
+    previousMembershipNo: Joi.any().strip(),
+    joinYouthForum: Joi.any().strip(),
+    youthForum: Joi.any().strip(),
     paymentType: Joi.string()
       .valid(...Object.values(PAYMENT_TYPE))
       .optional(),

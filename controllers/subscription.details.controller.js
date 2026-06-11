@@ -1,5 +1,6 @@
 const subscriptionDetailsService = require("../services/subscription.details.service");
 const professionalDetailsHandler = require("../handlers/professional.details.handler");
+const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const joischemas = require("../validation/index.js");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
@@ -8,6 +9,7 @@ const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
 const {
   pickRequestedSubscriptionDetails,
+  syncLegacyProfessionalFieldsFromSubscriptionBody,
 } = require("../helpers/membershipCategory.helper.js");
 
 // Function to extract professional details for subscription
@@ -33,11 +35,19 @@ const {
 exports.createSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
+    const applicationId = req.params.applicationId;
+
+    await syncLegacyProfessionalFieldsFromSubscriptionBody({
+      applicationId,
+      body: req.body,
+      userId,
+      userType,
+      professionalDetailsHandler,
+      subscriptionDetailsHandler,
+    });
+
     const validatedData =
       await joischemas.subscription_details_create.validateAsync(req.body);
-
-    // Get application ID from URL parameters
-    const applicationId = req.params.applicationId;
 
     // Get tenantId from request context
     const tenantId = req.tenantId || req.ctx?.tenantId;
@@ -108,6 +118,15 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
     if (!applicationId) {
       return next(AppError.badRequest("Application ID is required"));
     }
+
+    await syncLegacyProfessionalFieldsFromSubscriptionBody({
+      applicationId,
+      body: req.body,
+      userId,
+      userType,
+      professionalDetailsHandler,
+      subscriptionDetailsHandler,
+    });
 
     const validatedData = pickRequestedSubscriptionDetails(
       await joischemas.subscription_details_update.validateAsync(req.body),
