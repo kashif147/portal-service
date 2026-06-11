@@ -60,27 +60,7 @@ async function assertSalaryDeductionAllowedForWorkLocation(
   }
 }
 
-async function resolveProfessionalDetailsForPaymentValidation(
-  applicationId,
-  professionalDetailsHandler,
-  { req = null, professionalDetailsOverride = {} } = {}
-) {
-  let record = null;
-  if (applicationId && professionalDetailsHandler?.getByApplicationId) {
-    record = await professionalDetailsHandler.getByApplicationId(applicationId);
-  }
-
-  return mergeProfessionalContextForPaymentValidation(
-    record?.professionalDetails || record,
-    {
-      ...(professionalDetailsOverride || {}),
-      ...(req?.body?.professionalDetails || {}),
-    }
-  );
-}
-
 module.exports = {
   assertSalaryDeductionAllowedForWorkLocation,
   mergeProfessionalContextForPaymentValidation,
-  resolveProfessionalDetailsForPaymentValidation,
 };
