@@ -35,14 +35,12 @@ function applyNoFeeMembershipPaymentDefaults(subscriptionDetails = {}) {
     return subscriptionDetails;
   }
 
-  const next = { ...subscriptionDetails };
-  if (!hasPaymentTypeValue(next.paymentType)) {
-    next.paymentType = PAYMENT_TYPE.CASH;
-  }
-  if (!hasPaymentFrequencyValue(next.paymentFrequency)) {
-    next.paymentFrequency = PAYMENT_FREQUENCY.ANNUALLY;
-  }
-  return next;
+  return {
+    ...subscriptionDetails,
+    paymentType: PAYMENT_TYPE.CASH,
+    paymentFrequency: PAYMENT_FREQUENCY.ANNUALLY,
+    payrollNo: null,
+  };
 }
 
 module.exports = {
