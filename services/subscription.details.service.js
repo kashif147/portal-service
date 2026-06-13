@@ -219,7 +219,13 @@ class SubscriptionDetailsService {
         const {
           assertSalaryDeductionAllowedForWorkLocation,
         } = require("../helpers/workLocationPayment.helper.js");
+        const {
+          applyNoFeeMembershipPaymentDefaults,
+        } = require("../helpers/noFeeMembershipPayment.helper.js");
 
+        updateData.subscriptionDetails = applyNoFeeMembershipPaymentDefaults(
+          updateData.subscriptionDetails,
+        );
         updateData.subscriptionDetails = enforcePaymentFrequencyRule(
           updateData.subscriptionDetails
         );
@@ -291,7 +297,13 @@ class SubscriptionDetailsService {
       const {
         assertSalaryDeductionAllowedForWorkLocation,
       } = require("../helpers/workLocationPayment.helper.js");
+      const {
+        applyNoFeeMembershipPaymentDefaults,
+      } = require("../helpers/noFeeMembershipPayment.helper.js");
 
+      createData.subscriptionDetails = applyNoFeeMembershipPaymentDefaults(
+        createData.subscriptionDetails,
+      );
       createData.subscriptionDetails = enforcePaymentFrequencyRule(
         createData.subscriptionDetails
       );
@@ -416,6 +428,9 @@ class SubscriptionDetailsService {
         const {
           assertSalaryDeductionAllowedForWorkLocation,
         } = require("../helpers/workLocationPayment.helper.js");
+        const {
+          applyNoFeeMembershipPaymentDefaults,
+        } = require("../helpers/noFeeMembershipPayment.helper.js");
         const [professionalDetails, existingDetails] = await Promise.all([
           professionalDetailsHandler.getByApplicationId(applicationId),
           subscriptionDetailsHandler.getByApplicationId(applicationId),
@@ -426,8 +441,11 @@ class SubscriptionDetailsService {
           ...safeUpdateData.subscriptionDetails,
         };
 
-        safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
+        safeUpdateData.subscriptionDetails = applyNoFeeMembershipPaymentDefaults(
           mergedSubscriptionDetails,
+        );
+        safeUpdateData.subscriptionDetails = enforcePaymentFrequencyRule(
+          safeUpdateData.subscriptionDetails,
         );
         await assertSalaryDeductionAllowedForWorkLocation(
           safeUpdateData.subscriptionDetails,
