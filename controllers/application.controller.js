@@ -116,7 +116,7 @@ exports.approveApplication = async (req, res, next) => {
     // };
 
     // // Emit appropriate event based on status
-    // if (applicationStatus === "approved") {
+    // if (applicationStatus === "processed") {
     //   await emitApplicationApproved(eventData);
     // } else if (applicationStatus === "rejected") {
     //   await emitApplicationRejected(eventData);

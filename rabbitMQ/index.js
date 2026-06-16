@@ -165,13 +165,13 @@ async function setupConsumers() {
     await consumer.consume(PAYMENT_QUEUE, { prefetch: 10 });
     console.log("✅ Payment service events consumer ready:", PAYMENT_QUEUE);
 
-    // Application approval/rejection events queue (application.events exchange)
+    // Application processing/rejection events queue (application.events exchange)
     const APPROVAL_QUEUE = "portal.application.approval.events";
-    console.log("🔧 [SETUP] Creating application approval/rejection queue...");
+    console.log("🔧 [SETUP] Creating application processing/rejection queue...");
     console.log("   Queue:", APPROVAL_QUEUE);
     console.log("   Exchange: application.events");
     console.log(
-      "   Routing Keys: applications.review.approved.v1, applications.review.rejected.v1"
+      "   Routing Keys: applications.review.processed.v1, applications.review.rejected.v1"
     );
 
     await consumer.createQueue(APPROVAL_QUEUE, {
@@ -180,16 +180,16 @@ async function setupConsumers() {
     });
 
     await consumer.bindQueue(APPROVAL_QUEUE, "application.events", [
-      "applications.review.approved.v1",
+      "applications.review.processed.v1",
       "applications.review.rejected.v1",
     ]);
 
     consumer.registerHandler(
-      "applications.review.approved.v1",
+      "applications.review.processed.v1",
       async (payload, context) => {
         const { data } = payload;
         console.log(
-          "📥 [APPROVAL_EVENT] Received application approval event:",
+          "📥 [PROCESSED_EVENT] Received application processed event:",
           {
             routingKey: context.routingKey,
             applicationId: data?.applicationId,

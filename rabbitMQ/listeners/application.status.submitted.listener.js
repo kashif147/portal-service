@@ -108,9 +108,9 @@ class ApplicationStatusUpdateListener {
       const currentStatus = (
         personalDetails.applicationStatus || ""
       ).toLowerCase();
-      if (currentStatus === APPLICATION_STATUS.APPROVED) {
+      if (currentStatus === APPLICATION_STATUS.PROCESSED) {
         console.log(
-          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already approved",
+          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already processed",
           {
             applicationId,
             applicationStatus: personalDetails.applicationStatus,

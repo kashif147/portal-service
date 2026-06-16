@@ -13,13 +13,13 @@ function getReviewerIdForDb(reviewerId) {
 
 class ApplicationApprovalListener {
   constructor() {
-    // This listener handles applications.review.approved.v1 events from profile service
+    // This listener handles applications.review.processed.v1 events from profile service
   }
 
   async handleApplicationApproved(data) {
     try {
       console.log(
-        "📥 [APPLICATION_APPROVAL_LISTENER] Received application approved event:",
+        "📥 [APPLICATION_APPROVAL_LISTENER] Received application processed event:",
         {
           applicationId: data.applicationId,
           profileId: data.profileId,
@@ -43,15 +43,15 @@ class ApplicationApprovalListener {
       } = data;
 
       const statusNorm = (applicationStatus || "").toLowerCase().trim();
-      if (statusNorm && statusNorm !== APPLICATION_STATUS.APPROVED) {
+      if (statusNorm && statusNorm !== APPLICATION_STATUS.PROCESSED) {
         console.log(
-          "⏭️ [APPLICATION_APPROVAL_LISTENER] Skipping: not an approval event",
+          "⏭️ [APPLICATION_APPROVAL_LISTENER] Skipping: not a processed application event",
           { applicationId, applicationStatus }
         );
         return;
       }
 
-      // 1. Find and update PersonalDetails with approval status
+      // 1. Find and update PersonalDetails with processed status
       const personalDetails = await PersonalDetails.findOne({
         applicationId: applicationId,
       });
@@ -70,9 +70,9 @@ class ApplicationApprovalListener {
         userId: personalDetails.userId,
       });
 
-      // Update PersonalDetails with approval status and details
+      // Update PersonalDetails with processed status and details
       const personalUpdateData = {
-        applicationStatus: APPLICATION_STATUS.APPROVED,
+        applicationStatus: APPLICATION_STATUS.PROCESSED,
         "meta.isActive": true,
         approvalDetails: {
           approvedBy: getReviewerIdForDb(reviewerId),
@@ -196,7 +196,6 @@ class ApplicationApprovalListener {
 }
 
 module.exports = new ApplicationApprovalListener();
-
 
 
 

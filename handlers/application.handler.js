@@ -104,7 +104,7 @@ exports.updateApplicationStatus = (
       };
       if (normalizedStatus === APPLICATION_STATUS.REJECTED) {
         updateData["meta.isActive"] = false;
-      } else if (normalizedStatus === APPLICATION_STATUS.APPROVED) {
+      } else if (normalizedStatus === APPLICATION_STATUS.PROCESSED) {
         updateData["meta.isActive"] = true;
       }
 
@@ -123,9 +123,9 @@ exports.updateApplicationStatus = (
         stampPersonalInfoFullName(result.personalInfo);
       }
 
-      const active = normalizedStatus === APPLICATION_STATUS.APPROVED;
+      const active = normalizedStatus === APPLICATION_STATUS.PROCESSED;
       if (
-        normalizedStatus === APPLICATION_STATUS.APPROVED ||
+        normalizedStatus === APPLICATION_STATUS.PROCESSED ||
         normalizedStatus === APPLICATION_STATUS.REJECTED
       ) {
         await ProfessionalDetails.updateMany(
