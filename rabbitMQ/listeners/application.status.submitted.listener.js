@@ -5,6 +5,19 @@ const ProfessionalDetails = require("../../models/professional.details.model.js"
 const SubscriptionDetails = require("../../models/subscription.model.js");
 const { APPLICATION_STATUS } = require("../../constants/enums.js");
 
+function normalizePaymentStatus(status) {
+  const value = String(status || "").trim().toLowerCase();
+  if (value === "requires_capture" || value === "authorised") return "Authorised";
+  if (value === "succeeded" || value === "submitted" || value === "paid") {
+    return "Captured";
+  }
+  if (value === "canceled" || value === "cancelled") return "Cancelled";
+  if (value === "authorization_expired") return "Authorisation Expired";
+  if (value === "requires_action") return "Requires Action";
+  if (value === "failed") return "Failed";
+  return status;
+}
+
 class ApplicationStatusUpdateListener {
   constructor() {
     // This listener handles application.status.updated events from payment service
@@ -34,14 +47,16 @@ class ApplicationStatusUpdateListener {
         tenantId,
       } = data;
 
-      // Only process events when payment is successfully captured
-      // Status can be "submitted" (from payment service), "paid", "succeeded", or "completed"
-      // "submitted" means payment was successful and application should be moved to submitted status
+      // Process payment events once card payment is authorised or captured.
+      // Manual capture leaves the application submitted/pending review until CRM approval.
       const PAYMENT_CAPTURED_STATUSES = [
         "submitted",
         "paid",
         "succeeded",
         "completed",
+        "requires_capture",
+        "authorised",
+        "authorized",
       ];
       const isPaymentCaptured = PAYMENT_CAPTURED_STATUSES.includes(
         status?.toLowerCase()
@@ -49,30 +64,18 @@ class ApplicationStatusUpdateListener {
 
       if (!isPaymentCaptured) {
         console.log(
-          "ℹ️ [STATUS_UPDATE_LISTENER] Payment not yet captured, skipping event publication:",
+          "ℹ️ [STATUS_UPDATE_LISTENER] Payment is not authorised/captured; recording payment details only:",
           {
             applicationId,
             status,
             expectedStatuses: PAYMENT_CAPTURED_STATUSES,
           }
         );
-        return; // Don't publish event until payment is captured
       }
 
-      console.log(
-        "✅ [STATUS_UPDATE_LISTENER] Payment captured, processing event:",
-        {
-          applicationId,
-          status,
-          hasPaymentIntentId: !!paymentIntentId,
-          hasAmount: !!amount,
-          hasCurrency: !!currency,
-        }
-      );
-
-      // Validate required payment data for captured payments
+      // Validate required payment data
       const hasPaymentInfo = paymentIntentId && amount && currency;
-      if (!hasPaymentInfo) {
+      if (isPaymentCaptured && !hasPaymentInfo) {
         console.warn(
           "⚠️ [STATUS_UPDATE_LISTENER] Payment marked as captured but missing payment information:",
           {
@@ -108,68 +111,70 @@ class ApplicationStatusUpdateListener {
       const currentStatus = (
         personalDetails.applicationStatus || ""
       ).toLowerCase();
-      if (currentStatus === APPLICATION_STATUS.PROCESSED) {
+      const isAlreadyProcessed = currentStatus === APPLICATION_STATUS.PROCESSED;
+      if (isAlreadyProcessed) {
         console.log(
-          "⏭️ [STATUS_UPDATE_LISTENER] Skipping: application already processed",
+          "⏭️ [STATUS_UPDATE_LISTENER] Application already processed; payment details may still be updated",
           {
             applicationId,
             applicationStatus: personalDetails.applicationStatus,
           }
         );
-        return;
       }
 
       const isReapplication =
         currentStatus === APPLICATION_STATUS.REJECTED ||
         personalDetails.meta?.isActive === false;
 
-      // 2. Update application status to "submitted" when payment is captured
-      // All payment-captured statuses ("submitted", "paid", "succeeded", "completed")
-      // should be converted to APPLICATION_STATUS.SUBMITTED enum value
-      const targetStatus = APPLICATION_STATUS.SUBMITTED;
+      let updatedPersonalDetails = personalDetails;
+      if (isPaymentCaptured && !isAlreadyProcessed) {
+        // 2. Update application status to "submitted" when payment is authorised/captured.
+        // Approval/processing remains a separate CRM action.
+        const targetStatus = APPLICATION_STATUS.SUBMITTED;
 
-      const updateData = {
-        applicationStatus: targetStatus,
-        "meta.isActive": true,
-      };
-
-      if (isReapplication) {
-        updateData.approvalDetails = {
-          approvedBy: null,
-          approvedAt: null,
-          rejectionReason: null,
-          comments: null,
+        const updateData = {
+          applicationStatus: targetStatus,
+          "meta.isActive": true,
         };
-        console.log(
-          "🔄 [STATUS_UPDATE_LISTENER] Re-application detected — resetting rejection metadata before submit",
-          { applicationId }
+
+        if (isReapplication) {
+          updateData.approvalDetails = {
+            approvedBy: null,
+            approvedAt: null,
+            rejectionReason: null,
+            comments: null,
+          };
+          console.log(
+            "🔄 [STATUS_UPDATE_LISTENER] Re-application detected — resetting rejection metadata before submit",
+            { applicationId }
+          );
+        }
+
+        console.log("📝 [STATUS_UPDATE_LISTENER] Updating application status:", {
+          applicationId,
+          currentStatus: personalDetails.applicationStatus,
+          newStatus: targetStatus,
+          statusFromEvent: status,
+        });
+
+        updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
+          personalDetails._id,
+          updateData,
+          { new: true }
         );
+
+        if (!updatedPersonalDetails) {
+          throw new Error(
+            `Failed to update application status. Application ID: ${applicationId}`
+          );
+        }
+
+        console.log("✅ [STATUS_UPDATE_LISTENER] Application status updated:", {
+          applicationId,
+          previousStatus: personalDetails.applicationStatus,
+          newStatus: updatedPersonalDetails.applicationStatus,
+        });
       }
-
-      console.log("📝 [STATUS_UPDATE_LISTENER] Updating application status:", {
-        applicationId,
-        currentStatus: personalDetails.applicationStatus,
-        newStatus: targetStatus,
-        statusFromEvent: status,
-      });
-
-      const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
-        personalDetails._id,
-        updateData,
-        { new: true }
-      );
-
-      if (!updatedPersonalDetails) {
-        throw new Error(
-          `Failed to update application status. Application ID: ${applicationId}`
-        );
-      }
-
-      console.log("✅ [STATUS_UPDATE_LISTENER] Application status updated:", {
-        applicationId,
-        previousStatus: personalDetails.applicationStatus,
-        newStatus: updatedPersonalDetails.applicationStatus,
-      });
 
       // 3. Record payment information in subscription details (single source of truth)
       // First, query for existing subscription details
@@ -217,7 +222,7 @@ class ApplicationStatusUpdateListener {
             paymentIntentId: paymentIntentId,
             amount: amount,
             currency: currency,
-            status: status,
+            status: normalizePaymentStatus(status),
             updatedAt: new Date(),
           },
         };
@@ -262,6 +267,19 @@ class ApplicationStatusUpdateListener {
         console.log(
           "ℹ️ [STATUS_UPDATE_LISTENER] No payment information provided (e.g., Undergraduate Student), using existing subscription details"
         );
+      }
+
+      if (!isPaymentCaptured || isAlreadyProcessed) {
+        console.log(
+          "⏭️ [STATUS_UPDATE_LISTENER] Payment details recorded; skipping profile-service publication",
+          {
+            applicationId,
+            status,
+            isPaymentCaptured,
+            isAlreadyProcessed,
+          }
+        );
+        return;
       }
 
       // 4. Get all related data for profile service event
