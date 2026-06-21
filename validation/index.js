@@ -7,6 +7,40 @@ const {
   PAYMENT_FREQUENCY,
 } = require("../constants/enums");
 
+function normalizeMembershipCategory(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function isUndergraduateStudentCategory(value) {
+  const key = normalizeMembershipCategory(value);
+  return (
+    key.includes("undergraduate") &&
+    key.includes("student") &&
+    !key.includes("postgraduate")
+  );
+}
+
+const undergraduateStudentCategory = Joi.string().custom((value, helpers) => {
+  if (isUndergraduateStudentCategory(value)) return value;
+  return helpers.error("any.invalid");
+});
+
+const optionalNmbiNumber = Joi.string().allow(null, "").optional().default(null);
+const requiredNmbiNumber = Joi.string().trim().required();
+const nmbiNumberSchema = Joi.when("nursingAdaptationProgramme", {
+  is: true,
+  then: optionalNmbiNumber,
+  otherwise: Joi.when("membershipCategory", {
+    is: undergraduateStudentCategory,
+    then: optionalNmbiNumber,
+    otherwise: requiredNmbiNumber,
+  }),
+});
+
 module.exports.personal_details_create = Joi.object({
   personalInfo: Joi.object({
     title: Joi.string().required(),
@@ -95,17 +129,13 @@ module.exports.application_approve = Joi.object({
 //
 module.exports.professional_details_create = Joi.object({
   professionalDetails: Joi.object({
-    membershipCategory: Joi.any().strip(),
+    membershipCategory: Joi.any().optional(),
     processSalaryDeduction: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
-    nmbiNumber: Joi.when("nursingAdaptationProgramme", {
-      is: false,
-      then: Joi.string().trim().required(),
-      otherwise: Joi.string().allow(null, "").optional().default(null),
-    }),
+    nmbiNumber: nmbiNumberSchema,
     nursingAdaptationProgramme: Joi.boolean().optional().default(false),
     nurseType: Joi.when("nursingAdaptationProgramme", {
       is: true,
@@ -135,17 +165,13 @@ module.exports.professional_details_create = Joi.object({
 
 module.exports.professional_details_update = Joi.object({
   professionalDetails: Joi.object({
-    membershipCategory: Joi.any().strip(),
+    membershipCategory: Joi.any().optional(),
     processSalaryDeduction: Joi.any().strip(),
     workLocation: Joi.string().optional().default(null),
     otherWorkLocation: Joi.string().optional().default(null),
     grade: Joi.string().optional().default(null),
     otherGrade: Joi.string().optional().default(null),
-    nmbiNumber: Joi.when("nursingAdaptationProgramme", {
-      is: false,
-      then: Joi.string().trim().required(),
-      otherwise: Joi.string().allow(null, "").optional().default(null),
-    }),
+    nmbiNumber: nmbiNumberSchema,
     nursingAdaptationProgramme: Joi.boolean().optional().default(false),
     nurseType: Joi.when("nursingAdaptationProgramme", {
       is: true,
