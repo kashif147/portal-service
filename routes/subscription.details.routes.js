@@ -9,7 +9,6 @@ const { autoRequirePermission } = require("../middlewares/autoPolicy.middleware"
 // PUT /:applicationId → portal:write
 // DELETE /:applicationId → portal:delete
 
-router.post("/:applicationId/payment-confirmation", autoRequirePermission(), subscriptionDetailsController.confirmApplicationPayment);
 router.post("/:applicationId", autoRequirePermission(), subscriptionDetailsController.createSubscriptionDetails);
 router.get("/", autoRequirePermission(), subscriptionDetailsController.getMySubscriptionDetails);
 router.get("/:applicationId", autoRequirePermission(), subscriptionDetailsController.getSubscriptionDetails);

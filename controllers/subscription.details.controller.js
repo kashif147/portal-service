@@ -163,32 +163,6 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
   }
 };
 
-exports.confirmApplicationPayment = async (req, res, next) => {
-  try {
-    const { userId, userType } = extractUserAndCreatorContext(req);
-    const applicationId = req.params.applicationId;
-    const paymentIntentId = String(req.body?.paymentIntentId || "").trim();
-
-    const tenantId = req.tenantId || req.ctx?.tenantId;
-    const result = await subscriptionDetailsService.confirmApplicationPayment(
-      applicationId,
-      paymentIntentId,
-      userId,
-      userType,
-      tenantId,
-      req
-    );
-
-    return res.success(result);
-  } catch (error) {
-    console.error(
-      "SubscriptionDetailsController [confirmApplicationPayment] Error:",
-      error
-    );
-    return next(error);
-  }
-};
-
 exports.deleteSubscriptionDetails = async (req, res, next) => {
   try {
     const { userId, userType } = extractUserAndCreatorContext(req);

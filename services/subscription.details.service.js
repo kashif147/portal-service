@@ -5,10 +5,6 @@ const { APPLICATION_STATUS } = require("../constants/enums");
 const { AppError } = require("../errors/AppError");
 const ApplicationStatusUpdateListener = require("../rabbitMQ/listeners/application.status.submitted.listener.js");
 const {
-  fetchLatestApplicationPayment,
-  fetchPaymentByIntent,
-} = require("./account.service.client.js");
-const {
   isReapplyApplication,
   reactivatePersonalApplicationForReapply,
 } = require("../helpers/reactivatePortalApplication.helper.js");
@@ -136,16 +132,6 @@ async function handlePostSubscriptionSubmission({
   }
 
   return result;
-}
-
-function normalizePaymentStatus(status) {
-  return String(status || "").trim().toLowerCase();
-}
-
-function isAuthorisedApplicationPayment(status) {
-  return ["requires_capture", "authorised", "authorized", "succeeded"].includes(
-    normalizePaymentStatus(status)
-  );
 }
 
 /**
@@ -351,86 +337,6 @@ class SubscriptionDetailsService {
       );
       throw error;
     }
-  }
-
-  async confirmApplicationPayment(
-    applicationId,
-    paymentIntentId,
-    userId,
-    userType,
-    tenantId,
-    req = null
-  ) {
-    if (!applicationId) {
-      throw AppError.badRequest("Application ID is required");
-    }
-    if (!paymentIntentId) {
-      throw AppError.badRequest("PaymentIntent ID is required");
-    }
-
-    const personalDetails = await personalDetailsHandler.getApplicationById(
-      applicationId
-    );
-    if (!personalDetails) {
-      throw AppError.notFound("Application not found");
-    }
-
-    if (userType !== "CRM") {
-      if (personalDetails.userId?.toString() !== userId?.toString()) {
-        throw AppError.forbidden(
-          "Access denied. You can only confirm payment for your own application."
-        );
-      }
-    }
-
-    const subscriptionDetails =
-      await subscriptionDetailsHandler.getByApplicationId(applicationId);
-    if (!subscriptionDetails) {
-      throw AppError.badRequest(
-        "Subscription details must be saved before confirming payment."
-      );
-    }
-
-    let payment = await fetchLatestApplicationPayment(applicationId, tenantId, req);
-    if (
-      String(payment?.paymentIntentId || "").trim() !==
-      String(paymentIntentId).trim()
-    ) {
-      payment = await fetchPaymentByIntent(paymentIntentId, tenantId, req);
-    }
-    const paymentApplicationId = String(payment?.applicationId || "").trim();
-    if (paymentApplicationId !== String(applicationId).trim()) {
-      throw AppError.badRequest(
-        "PaymentIntent does not belong to this application."
-      );
-    }
-    if (payment?.memberId) {
-      throw AppError.badRequest(
-        "PaymentIntent belongs to a member payment, not an application payment."
-      );
-    }
-
-    if (!isAuthorisedApplicationPayment(payment?.status)) {
-      throw AppError.badRequest(
-        `Payment is not authorised. Current status is ${payment?.status || "unknown"}.`
-      );
-    }
-
-    await ApplicationStatusUpdateListener.handleApplicationStatusUpdate({
-      applicationId,
-      status: payment.status,
-      paymentIntentId,
-      amount: payment.amount,
-      currency: payment.currency,
-      tenantId: payment.tenantId || tenantId,
-    });
-
-    return {
-      applicationId,
-      applicationStatus: APPLICATION_STATUS.SUBMITTED,
-      paymentIntentId,
-      paymentStatus: payment.status,
-    };
   }
 
   /**
