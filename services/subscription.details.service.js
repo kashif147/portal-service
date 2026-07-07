@@ -71,7 +71,16 @@ async function handlePostSubscriptionSubmission({
   applicationId,
   professionalDetails,
   tenantId,
+  req = null,
 }) {
+  const resolvedTenantId =
+    tenantId ||
+    req?.tenantId ||
+    req?.ctx?.tenantId ||
+    req?.user?.tenantId ||
+    req?.headers?.["x-tenant-id"] ||
+    null;
+
   const membershipCategoryId =
     result?.subscriptionDetails?.membershipCategory ||
     professionalDetails?.professionalDetails?.membershipCategory;
@@ -97,7 +106,7 @@ async function handlePostSubscriptionSubmission({
     );
   }
 
-  if (isUndergraduateStudent && tenantId) {
+  if (isUndergraduateStudent && resolvedTenantId) {
     try {
       console.log(
         "📤 [SUBSCRIPTION_SERVICE] Triggering profile service event for Undergraduate Student (no payment required)"
@@ -109,7 +118,7 @@ async function handlePostSubscriptionSubmission({
         paymentIntentId: null,
         amount: null,
         currency: null,
-        tenantId,
+        tenantId: resolvedTenantId,
       });
 
       console.log(
@@ -125,9 +134,16 @@ async function handlePostSubscriptionSubmission({
     console.log(
       "ℹ️ [SUBSCRIPTION_SERVICE] Membership category is not 'Undergraduate Student', event will be published when payment is processed"
     );
-  } else if (!tenantId) {
+  } else if (!resolvedTenantId) {
     console.warn(
-      "⚠️ [SUBSCRIPTION_SERVICE] tenantId not provided, skipping RabbitMQ event publication"
+      "⚠️ [SUBSCRIPTION_SERVICE] tenantId not provided, skipping RabbitMQ event publication",
+      {
+        applicationId,
+        hasRequestTenantId: !!req?.tenantId,
+        hasRequestContextTenantId: !!req?.ctx?.tenantId,
+        hasUserTenantId: !!req?.user?.tenantId,
+        hasHeaderTenantId: !!req?.headers?.["x-tenant-id"],
+      }
     );
   }
 
@@ -255,6 +271,7 @@ class SubscriptionDetailsService {
           applicationId,
           professionalDetails,
           tenantId,
+          req,
         });
       }
 
@@ -329,6 +346,7 @@ class SubscriptionDetailsService {
         applicationId,
         professionalDetails,
         tenantId,
+        req,
       });
     } catch (error) {
       console.error(

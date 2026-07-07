@@ -12,6 +12,16 @@ const {
   syncLegacyProfessionalFieldsFromSubscriptionBody,
 } = require("../helpers/membershipCategory.helper.js");
 
+function resolveTenantId(req) {
+  return (
+    req.tenantId ||
+    req.ctx?.tenantId ||
+    req.user?.tenantId ||
+    req.headers?.["x-tenant-id"] ||
+    null
+  );
+}
+
 // Function to extract professional details for subscription
 // const extractProfessionalDetailsForSubscription = async (userId) => {
 //   try {
@@ -50,7 +60,7 @@ exports.createSubscriptionDetails = async (req, res, next) => {
       await joischemas.subscription_details_create.validateAsync(req.body);
 
     // Get tenantId from request context
-    const tenantId = req.tenantId || req.ctx?.tenantId;
+    const tenantId = resolveTenantId(req);
 
     // Create new subscription details
     const result = await subscriptionDetailsService.createSubscriptionDetails(

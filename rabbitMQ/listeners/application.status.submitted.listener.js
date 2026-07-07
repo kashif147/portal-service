@@ -404,7 +404,16 @@ class ApplicationStatusUpdateListener {
         }
       );
 
-      await publishDomainEvent(PROFILE_EVENTS.APPLICATION_CREATE, eventPayload);
+      const published = await publishDomainEvent(
+        PROFILE_EVENTS.APPLICATION_CREATE,
+        eventPayload
+      );
+
+      if (!published) {
+        throw new Error(
+          `Failed to publish ${PROFILE_EVENTS.APPLICATION_CREATE} for application ${applicationId}`
+        );
+      }
 
       console.log(
         "✅ [STATUS_UPDATE_LISTENER] Profile service event emitted successfully"

@@ -109,6 +109,18 @@ async function setupConsumers() {
     // Register handler for both routing keys
     const handlePaymentEvent = async (payload, context) => {
       const { data, eventType, eventId } = payload;
+      bizLogger.business("RabbitMQ payment event consumed", {
+        eventType,
+        eventId,
+        correlationId: payload.correlationId || null,
+        tenantId: data?.tenantId || payload.tenantId || null,
+        applicationId: data?.applicationId || null,
+        membershipId: data?.memberId || data?.membershipId || null,
+        exchange: context.exchange,
+        routingKey: context.routingKey,
+        queue: PAYMENT_QUEUE,
+        sourceService: payload.sourceService || payload.metadata?.service || null,
+      });
       console.log(
         "📥 [PAYMENT_EVENT] Received payment event:",
         {
@@ -123,9 +135,21 @@ async function setupConsumers() {
         }
       );
       try {
-      await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
-        data
-      );
+        await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
+          data
+        );
+        bizLogger.business("RabbitMQ payment event processed", {
+          eventType,
+          eventId,
+          correlationId: payload.correlationId || null,
+          tenantId: data?.tenantId || payload.tenantId || null,
+          applicationId: data?.applicationId || null,
+          membershipId: data?.memberId || data?.membershipId || null,
+          exchange: context.exchange,
+          routingKey: context.routingKey,
+          queue: PAYMENT_QUEUE,
+          sourceService: payload.sourceService || payload.metadata?.service || null,
+        });
         console.log(
           "✅ [PAYMENT_EVENT] Successfully processed payment event:",
           {
@@ -135,6 +159,18 @@ async function setupConsumers() {
           }
         );
       } catch (error) {
+        bizLogger.error("RabbitMQ payment event handler failed", {
+          eventType,
+          eventId,
+          correlationId: payload.correlationId || null,
+          tenantId: data?.tenantId || payload.tenantId || null,
+          applicationId: data?.applicationId || null,
+          membershipId: data?.memberId || data?.membershipId || null,
+          exchange: context.exchange,
+          routingKey: context.routingKey,
+          queue: PAYMENT_QUEUE,
+          error: error.message,
+        });
         console.error(
           "❌ [PAYMENT_EVENT] Error processing payment event:",
           {
