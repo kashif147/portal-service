@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/kashifurrehman/Documents/Personal/membership/projectShell/backend/portal-service/logs/portal-service/.8c52920bf0154224c193dea526ab12f8d337ae64-audit.json",
+    "files": [
+        {
+            "date": 1783835927008,
+            "name": "/Users/kashifurrehman/Documents/Personal/membership/projectShell/backend/portal-service/logs/portal-service/app-2026-07-12.log",
+            "hash": "7c61a7e7b0b3ee071442713b298aeca9ff250d4e8a551a691c18e14498948cd8"
+        }
+    ],
+    "hashType": "sha256"
+}
