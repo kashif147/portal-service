@@ -13,6 +13,9 @@ const {
 
 const ProfileSchema = new mongoose.Schema(
   {
+    // Owning tenant. Always stamped from the trusted auth context (or the
+    // event envelope for listener-created rows); never from body/query.
+    tenantId: { type: String, required: true, trim: true },
     applicationId: {
       type: String,
       default: uuidv4,
@@ -122,6 +125,11 @@ for (const hook of ["findOneAndUpdate", "updateOne", "updateMany"]) {
 }
 
 // Indexes for frequently queried fields
+// Tenant-leading compound indexes back every tenant-scoped lookup. The legacy
+// single-field indexes stay until the tenantId backfill has run everywhere
+// (see scripts/migrations/README-tenantId-backfill.md).
+ProfileSchema.index({ tenantId: 1, applicationId: 1 });
+ProfileSchema.index({ tenantId: 1, userId: 1 });
 ProfileSchema.index({ userId: 1 });
 ProfileSchema.index({ applicationId: 1 });
 

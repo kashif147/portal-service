@@ -4,12 +4,17 @@ const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
+const { getTrustedTenantId } = require("../helpers/tenantScope.js");
 const {
   enrichPersonalInfoFullNameOnDocument,
 } = require("../helpers/personal.info.fullName.js");
 
 exports.createPersonalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     console.log("=== createPersonalDetails START ===");
     console.log("Request body:", JSON.stringify(req.body, null, 2));
 
@@ -60,6 +65,7 @@ exports.createPersonalDetails = async (req, res, next) => {
         );
       }
       const existingPersonalDetails = await personalDetailsHandler.getByEmail(
+        tenantId,
         email
       );
       const hasActiveApplication =
@@ -81,7 +87,10 @@ exports.createPersonalDetails = async (req, res, next) => {
         );
       }
       const existingPersonalDetails =
-        await personalDetailsHandler.getActiveByUserIdForPortal(userId);
+        await personalDetailsHandler.getActiveByUserIdForPortal(
+          tenantId,
+          userId
+        );
 
       if (existingPersonalDetails) {
         return next(
@@ -106,7 +115,7 @@ exports.createPersonalDetails = async (req, res, next) => {
       }
     );
 
-    const result = await personalDetailsService.createPersonalDetails({
+    const result = await personalDetailsService.createPersonalDetails(tenantId, {
       ...validatedData,
       userId,
       meta: {
@@ -152,6 +161,10 @@ exports.createPersonalDetails = async (req, res, next) => {
 
 exports.getPersonalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -160,6 +173,7 @@ exports.getPersonalDetails = async (req, res, next) => {
     }
 
     const personalDetails = await personalDetailsService.getPersonalDetails(
+      tenantId,
       applicationId,
       userId,
       userType
@@ -185,6 +199,10 @@ exports.getPersonalDetails = async (req, res, next) => {
 
 exports.updatePersonalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -201,6 +219,7 @@ exports.updatePersonalDetails = async (req, res, next) => {
     };
 
     const result = await personalDetailsService.updatePersonalDetails(
+      tenantId,
       applicationId,
       updatePayload,
       userId,
@@ -226,6 +245,10 @@ exports.updatePersonalDetails = async (req, res, next) => {
 
 exports.deletePersonalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -234,6 +257,7 @@ exports.deletePersonalDetails = async (req, res, next) => {
     }
 
     await personalDetailsService.deletePersonalDetails(
+      tenantId,
       applicationId,
       userId,
       userType
@@ -253,6 +277,10 @@ exports.deletePersonalDetails = async (req, res, next) => {
 };
 exports.getMyPersonalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     console.log("=== getMyPersonalDetails START ===");
     console.log("Request headers:", req.headers);
     console.log("Request user:", req.user);
@@ -284,6 +312,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
       userId
     );
     const personalDetails = await personalDetailsService.getMyPersonalDetails(
+      tenantId,
       userId
     );
     console.log("Service response:", personalDetails);
@@ -311,6 +340,10 @@ exports.getMyPersonalDetails = async (req, res, next) => {
 
 exports.getApplicationStatus = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -319,6 +352,7 @@ exports.getApplicationStatus = async (req, res, next) => {
     }
 
     const statusPayload = await personalDetailsService.getApplicationStatus(
+      tenantId,
       applicationId,
       userId,
       userType

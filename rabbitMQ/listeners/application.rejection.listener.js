@@ -2,6 +2,7 @@ const PersonalDetails = require("../../models/personal.details.model.js");
 const ProfessionalDetails = require("../../models/professional.details.model.js");
 const SubscriptionDetails = require("../../models/subscription.model.js");
 const { APPLICATION_STATUS } = require("../../constants/enums.js");
+const { getEventTenantId } = require("../../helpers/tenantScope.js");
 
 // Helper function to handle bypass user ObjectId conversion
 function getReviewerIdForDb(reviewerId) {
@@ -16,7 +17,12 @@ class ApplicationRejectionListener {
     // This listener handles applications.review.rejected.v1 events from profile service
   }
 
-  async handleApplicationRejected(data) {
+  /**
+   * @param {object} data - event `data`
+   * @param {string} [envelopeTenantId] - payload.tenantId (authoritative);
+   *   data.tenantId is the fallback mirror. No tenant => skip + log.
+   */
+  async handleApplicationRejected(data, envelopeTenantId) {
     try {
       console.log(
         "📥 [APPLICATION_REJECTION_LISTENER] Received application rejected event:",
@@ -29,10 +35,20 @@ class ApplicationRejectionListener {
         }
       );
 
-      const { applicationId, reviewerId, reason, notes, tenantId } = data;
+      const { applicationId, reviewerId, reason, notes } = data;
+
+      const tenantId = getEventTenantId({ tenantId: envelopeTenantId }, data);
+      if (!tenantId) {
+        console.warn(
+          "⚠️ [APPLICATION_REJECTION_LISTENER] Event has no tenantId (envelope or data); skipping",
+          { applicationId }
+        );
+        return;
+      }
 
       // Find and update PersonalDetails with rejection status
       const personalDetails = await PersonalDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
@@ -62,8 +78,8 @@ class ApplicationRejectionListener {
         },
       };
 
-      const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
-        personalDetails._id,
+      const updatedPersonalDetails = await PersonalDetails.findOneAndUpdate(
+        { _id: personalDetails._id, tenantId },
         { $set: personalUpdateData },
         { new: true }
       );
@@ -85,11 +101,11 @@ class ApplicationRejectionListener {
 
       const [profResult, subResult] = await Promise.all([
         ProfessionalDetails.updateMany(
-          { applicationId },
+          { tenantId, applicationId },
           { $set: { "meta.isActive": false } }
         ),
         SubscriptionDetails.updateMany(
-          { applicationId },
+          { tenantId, applicationId },
           { $set: { "meta.isActive": false } }
         ),
       ]);

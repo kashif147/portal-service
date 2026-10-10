@@ -4,6 +4,7 @@ const PersonalDetails = require("../../models/personal.details.model.js");
 const ProfessionalDetails = require("../../models/professional.details.model.js");
 const SubscriptionDetails = require("../../models/subscription.model.js");
 const { APPLICATION_STATUS } = require("../../constants/enums.js");
+const { getEventTenantId } = require("../../helpers/tenantScope.js");
 
 function normalizePaymentStatus(status) {
   const value = String(status || "").trim().toLowerCase();
@@ -23,7 +24,14 @@ class ApplicationStatusUpdateListener {
     // This listener handles application.status.updated events from payment service
   }
 
-  async handleApplicationStatusUpdate(data) {
+  /**
+   * @param {object} data - event `data` (applicationId, status, payment info)
+   * @param {string} [envelopeTenantId] - the event ENVELOPE tenant
+   *   (payload.tenantId). Authoritative; `data.tenantId` is only a fallback
+   *   mirror. When neither is present the event is skipped and logged — the
+   *   listener never runs an unscoped lookup.
+   */
+  async handleApplicationStatusUpdate(data, envelopeTenantId) {
     try {
       console.log(
         "📥 [STATUS_UPDATE_LISTENER] Received application status update:",
@@ -38,14 +46,27 @@ class ApplicationStatusUpdateListener {
         }
       );
 
-      const {
-        applicationId,
-        status,
-        paymentIntentId,
-        amount,
-        currency,
-        tenantId,
-      } = data;
+      const { applicationId, status, paymentIntentId, amount, currency } =
+        data;
+
+      const tenantId = getEventTenantId({ tenantId: envelopeTenantId }, data);
+      if (!tenantId) {
+        console.warn(
+          "⚠️ [STATUS_UPDATE_LISTENER] Event has no tenantId (envelope or data); skipping",
+          { applicationId }
+        );
+        return;
+      }
+      if (
+        envelopeTenantId &&
+        data?.tenantId &&
+        String(data.tenantId) !== String(envelopeTenantId)
+      ) {
+        console.warn(
+          "⚠️ [STATUS_UPDATE_LISTENER] data.tenantId differs from envelope tenantId; using envelope",
+          { applicationId }
+        );
+      }
 
       // Process payment events once card payment is authorised or captured.
       // Manual capture leaves the application submitted/pending review until CRM approval.
@@ -91,6 +112,7 @@ class ApplicationStatusUpdateListener {
 
       // 1. Find application with ID
       const personalDetails = await PersonalDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
@@ -157,8 +179,8 @@ class ApplicationStatusUpdateListener {
           statusFromEvent: status,
         });
 
-        updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
-          personalDetails._id,
+        updatedPersonalDetails = await PersonalDetails.findOneAndUpdate(
+          { _id: personalDetails._id, tenantId },
           updateData,
           { new: true }
         );
@@ -179,6 +201,7 @@ class ApplicationStatusUpdateListener {
       // 3. Record payment information in subscription details (single source of truth)
       // First, query for existing subscription details
       let subscriptionDetails = await SubscriptionDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
@@ -227,17 +250,18 @@ class ApplicationStatusUpdateListener {
           },
         };
 
-        await SubscriptionDetails.findByIdAndUpdate(
-          subscriptionDetails._id,
+        await SubscriptionDetails.findOneAndUpdate(
+          { _id: subscriptionDetails._id, tenantId },
           subscriptionUpdateData,
           { new: true }
         );
 
         // Re-query to ensure we have the latest data from database
         const subscriptionId = subscriptionDetails._id;
-        subscriptionDetails = await SubscriptionDetails.findById(
-          subscriptionId
-        );
+        subscriptionDetails = await SubscriptionDetails.findOne({
+          _id: subscriptionId,
+          tenantId,
+        });
 
         if (!subscriptionDetails) {
           console.error(
@@ -284,11 +308,13 @@ class ApplicationStatusUpdateListener {
 
       // 4. Get all related data for profile service event
       const professionalDetails = await ProfessionalDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
       // Final verification: Re-query subscriptionDetails from database to ensure we have the latest data
       subscriptionDetails = await SubscriptionDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
@@ -404,9 +430,12 @@ class ApplicationStatusUpdateListener {
         }
       );
 
+      // Tenant travels in BOTH the envelope (metadata.tenantId -> payload.tenantId)
+      // and the data mirror (eventPayload.tenantId).
       const published = await publishDomainEvent(
         PROFILE_EVENTS.APPLICATION_CREATE,
-        eventPayload
+        eventPayload,
+        { tenantId }
       );
 
       if (!published) {

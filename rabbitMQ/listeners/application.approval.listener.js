@@ -2,6 +2,7 @@ const PersonalDetails = require("../../models/personal.details.model.js");
 const ProfessionalDetails = require("../../models/professional.details.model.js");
 const SubscriptionDetails = require("../../models/subscription.model.js");
 const { APPLICATION_STATUS } = require("../../constants/enums.js");
+const { getEventTenantId } = require("../../helpers/tenantScope.js");
 
 // Helper function to handle bypass user ObjectId conversion
 function getReviewerIdForDb(reviewerId) {
@@ -16,7 +17,12 @@ class ApplicationApprovalListener {
     // This listener handles applications.review.processed.v1 events from profile service
   }
 
-  async handleApplicationApproved(data) {
+  /**
+   * @param {object} data - event `data`
+   * @param {string} [envelopeTenantId] - payload.tenantId (authoritative);
+   *   data.tenantId is the fallback mirror. No tenant => skip + log.
+   */
+  async handleApplicationApproved(data, envelopeTenantId) {
     try {
       console.log(
         "📥 [APPLICATION_APPROVAL_LISTENER] Received application processed event:",
@@ -39,8 +45,16 @@ class ApplicationApprovalListener {
         isExistingProfile,
         effective,
         subscriptionAttributes,
-        tenantId,
       } = data;
+
+      const tenantId = getEventTenantId({ tenantId: envelopeTenantId }, data);
+      if (!tenantId) {
+        console.warn(
+          "⚠️ [APPLICATION_APPROVAL_LISTENER] Event has no tenantId (envelope or data); skipping",
+          { applicationId }
+        );
+        return;
+      }
 
       const statusNorm = (applicationStatus || "").toLowerCase().trim();
       if (statusNorm && statusNorm !== APPLICATION_STATUS.PROCESSED) {
@@ -53,6 +67,7 @@ class ApplicationApprovalListener {
 
       // 1. Find and update PersonalDetails with processed status
       const personalDetails = await PersonalDetails.findOne({
+        tenantId,
         applicationId: applicationId,
       });
 
@@ -88,8 +103,8 @@ class ApplicationApprovalListener {
         personalUpdateData.contactInfo = effective.contactInfo;
       }
 
-      const updatedPersonalDetails = await PersonalDetails.findByIdAndUpdate(
-        personalDetails._id,
+      const updatedPersonalDetails = await PersonalDetails.findOneAndUpdate(
+        { _id: personalDetails._id, tenantId },
         { $set: personalUpdateData },
         { new: true }
       );
@@ -111,12 +126,13 @@ class ApplicationApprovalListener {
       // 2. Update ProfessionalDetails if provided
       if (effective?.professionalDetails) {
         const professionalDetails = await ProfessionalDetails.findOne({
+          tenantId,
           applicationId: applicationId,
         });
 
         if (professionalDetails) {
-          await ProfessionalDetails.findByIdAndUpdate(
-            professionalDetails._id,
+          await ProfessionalDetails.findOneAndUpdate(
+            { _id: professionalDetails._id, tenantId },
             { $set: { professionalDetails: effective.professionalDetails } },
             { new: true }
           );
@@ -134,6 +150,7 @@ class ApplicationApprovalListener {
       // 3. Update SubscriptionDetails if provided
       if (effective?.subscriptionDetails) {
         const subscriptionDetails = await SubscriptionDetails.findOne({
+          tenantId,
           applicationId: applicationId,
         });
 
@@ -147,8 +164,8 @@ class ApplicationApprovalListener {
             subscriptionUpdateData.subscriptionAttributes = subscriptionAttributes;
           }
 
-          await SubscriptionDetails.findByIdAndUpdate(
-            subscriptionDetails._id,
+          await SubscriptionDetails.findOneAndUpdate(
+            { _id: subscriptionDetails._id, tenantId },
             { $set: subscriptionUpdateData },
             { new: true }
           );
@@ -164,11 +181,11 @@ class ApplicationApprovalListener {
       }
 
       await ProfessionalDetails.updateMany(
-        { applicationId },
+        { tenantId, applicationId },
         { $set: { "meta.isActive": true } }
       );
       await SubscriptionDetails.updateMany(
-        { applicationId },
+        { tenantId, applicationId },
         { $set: { "meta.isActive": true } }
       );
 

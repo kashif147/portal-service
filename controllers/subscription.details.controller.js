@@ -7,20 +7,11 @@ const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const { APPLICATION_STATUS } = require("../constants/enums");
 const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
+const { getTrustedTenantId } = require("../helpers/tenantScope.js");
 const {
   pickRequestedSubscriptionDetails,
   syncLegacyProfessionalFieldsFromSubscriptionBody,
 } = require("../helpers/membershipCategory.helper.js");
-
-function resolveTenantId(req) {
-  return (
-    req.tenantId ||
-    req.ctx?.tenantId ||
-    req.user?.tenantId ||
-    req.headers?.["x-tenant-id"] ||
-    null
-  );
-}
 
 // Function to extract professional details for subscription
 // const extractProfessionalDetailsForSubscription = async (userId) => {
@@ -44,10 +35,15 @@ function resolveTenantId(req) {
 
 exports.createSubscriptionDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
     await syncLegacyProfessionalFieldsFromSubscriptionBody({
+      tenantId,
       applicationId,
       body: req.body,
       userId,
@@ -58,9 +54,6 @@ exports.createSubscriptionDetails = async (req, res, next) => {
 
     const validatedData =
       await joischemas.subscription_details_create.validateAsync(req.body);
-
-    // Get tenantId from request context
-    const tenantId = resolveTenantId(req);
 
     // Create new subscription details
     const result = await subscriptionDetailsService.createSubscriptionDetails(
@@ -87,6 +80,10 @@ exports.createSubscriptionDetails = async (req, res, next) => {
 
 exports.getSubscriptionDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -96,6 +93,7 @@ exports.getSubscriptionDetails = async (req, res, next) => {
 
     const subscriptionDetails =
       await subscriptionDetailsService.getSubscriptionDetails(
+        tenantId,
         applicationId,
         userId,
         userType
@@ -123,6 +121,10 @@ exports.getSubscriptionDetails = async (req, res, next) => {
 
 exports.updateSubscriptionDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -131,6 +133,7 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
     }
 
     await syncLegacyProfessionalFieldsFromSubscriptionBody({
+      tenantId,
       applicationId,
       body: req.body,
       userId,
@@ -150,6 +153,7 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
     };
 
     const result = await subscriptionDetailsService.updateSubscriptionDetails(
+      tenantId,
       applicationId,
       updatePayload,
       userId,
@@ -175,6 +179,10 @@ exports.updateSubscriptionDetails = async (req, res, next) => {
 
 exports.deleteSubscriptionDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -183,6 +191,7 @@ exports.deleteSubscriptionDetails = async (req, res, next) => {
     }
 
     await subscriptionDetailsService.deleteSubscriptionDetails(
+      tenantId,
       applicationId,
       userId,
       userType
@@ -203,6 +212,10 @@ exports.deleteSubscriptionDetails = async (req, res, next) => {
 
 exports.getMySubscriptionDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
 
     // Only allow PORTAL users to access this endpoint
@@ -215,7 +228,10 @@ exports.getMySubscriptionDetails = async (req, res, next) => {
     }
 
     const subscriptionDetails =
-      await subscriptionDetailsService.getMySubscriptionDetails(userId);
+      await subscriptionDetailsService.getMySubscriptionDetails(
+        tenantId,
+        userId
+      );
 
     if (!subscriptionDetails) {
       return res.notFoundRecord("Subscription details not found");

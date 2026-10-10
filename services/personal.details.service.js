@@ -1,6 +1,10 @@
 const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { AppError } = require("../errors/AppError");
 const { APPLICATION_STATUS } = require("../constants/enums");
+const {
+  requireTenantId,
+  requirePortalUserId,
+} = require("../helpers/tenantScope.js");
 
 /**
  * Personal Details Service Layer
@@ -12,13 +16,14 @@ class PersonalDetailsService {
    * @param {Object} data - Personal details data
    * @returns {Promise<Object>} Created personal details
    */
-  async createPersonalDetails(data) {
+  async createPersonalDetails(tenantId, data) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!data) {
         throw AppError.badRequest("Personal details data is required");
       }
 
-      return await personalDetailsHandler.create(data);
+      return await personalDetailsHandler.create(scopedTenantId, data);
     } catch (error) {
       console.error(
         "PersonalDetailsService [createPersonalDetails] Error:",
@@ -35,8 +40,9 @@ class PersonalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Personal details
    */
-  async getPersonalDetails(applicationId, userId, userType) {
+  async getPersonalDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -44,12 +50,14 @@ class PersonalDetailsService {
       let personalDetails;
       if (userType === "CRM") {
         personalDetails = await personalDetailsHandler.getApplicationById(
+          scopedTenantId,
           applicationId
         );
       } else {
         personalDetails =
           await personalDetailsHandler.getByUserIdAndApplicationId(
-            userId,
+            scopedTenantId,
+            requirePortalUserId(userId),
             applicationId
           );
       }
@@ -76,8 +84,16 @@ class PersonalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Updated personal details
    */
-  async updatePersonalDetails(applicationId, updateData, userId, userType) {
+  async updatePersonalDetails(
+    tenantId,
+    applicationId,
+    updateData,
+    userId,
+    userType
+  ) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -86,8 +102,18 @@ class PersonalDetailsService {
         throw AppError.badRequest("Update data is required");
       }
 
+      // Ownership-scoped pre-read: a portal user only ever sees their own row.
       const existingPersonalDetails =
-        await personalDetailsHandler.getApplicationById(applicationId);
+        userType === "CRM"
+          ? await personalDetailsHandler.getApplicationById(
+              scopedTenantId,
+              applicationId
+            )
+          : await personalDetailsHandler.getByUserIdAndApplicationId(
+              scopedTenantId,
+              userId,
+              applicationId
+            );
       if (
         existingPersonalDetails &&
         (existingPersonalDetails.applicationStatus ===
@@ -101,11 +127,13 @@ class PersonalDetailsService {
       let result;
       if (userType === "CRM") {
         result = await personalDetailsHandler.updateByApplicationId(
+          scopedTenantId,
           applicationId,
           updateData
         );
       } else {
         result = await personalDetailsHandler.updateByUserIdAndApplicationId(
+          scopedTenantId,
           userId,
           applicationId,
           updateData
@@ -129,8 +157,9 @@ class PersonalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Deleted personal details
    */
-  async deletePersonalDetails(applicationId, userId, userType) {
+  async deletePersonalDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -138,11 +167,13 @@ class PersonalDetailsService {
       let result;
       if (userType === "CRM") {
         result = await personalDetailsHandler.deleteByApplicationId(
+          scopedTenantId,
           applicationId
         );
       } else {
         result = await personalDetailsHandler.deleteByUserIdAndApplicationId(
-          userId,
+          scopedTenantId,
+          requirePortalUserId(userId),
           applicationId
         );
       }
@@ -162,13 +193,17 @@ class PersonalDetailsService {
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Personal details
    */
-  async getMyPersonalDetails(userId) {
+  async getMyPersonalDetails(tenantId, userId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!userId) {
         throw AppError.badRequest("User ID is required");
       }
 
-      return await personalDetailsHandler.getByUserIdForPortal(userId);
+      return await personalDetailsHandler.getByUserIdForPortal(
+        scopedTenantId,
+        userId
+      );
     } catch (error) {
       console.error(
         "PersonalDetailsService [getMyPersonalDetails] Error:",
@@ -183,13 +218,17 @@ class PersonalDetailsService {
    * @param {string} userId - User ID
    * @returns {Promise<boolean>} True if exists, false otherwise
    */
-  async checkPersonalDetailsExist(userId) {
+  async checkPersonalDetailsExist(tenantId, userId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!userId) {
         throw AppError.badRequest("User ID is required");
       }
 
-      const details = await personalDetailsHandler.getByUserId(userId);
+      const details = await personalDetailsHandler.getByUserId(
+        scopedTenantId,
+        userId
+      );
       return !!details;
     } catch (error) {
       console.error(
@@ -207,8 +246,9 @@ class PersonalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<{ applicationStatus: string, meta: { isActive: boolean } }>}
    */
-  async getApplicationStatus(applicationId, userId, userType) {
+  async getApplicationStatus(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -216,12 +256,14 @@ class PersonalDetailsService {
       let personalDetails;
       if (userType === "CRM") {
         personalDetails = await personalDetailsHandler.getApplicationById(
+          scopedTenantId,
           applicationId
         );
       } else {
         personalDetails =
           await personalDetailsHandler.getByUserIdAndApplicationId(
-            userId,
+            scopedTenantId,
+            requirePortalUserId(userId),
             applicationId
           );
       }

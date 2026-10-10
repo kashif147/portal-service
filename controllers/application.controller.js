@@ -3,10 +3,15 @@ const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const { PolicyClient } = require("@membership/policy-middleware");
 const { AppError } = require("../errors/AppError");
+const { getTrustedTenantId } = require("../helpers/tenantScope.js");
 // const { emitApplicationApproved, emitApplicationRejected } = require("../events/applicationEvents");
 
 exports.getAllApplications = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
       return next(
@@ -29,7 +34,10 @@ exports.getAllApplications = async (req, res, next) => {
     }
 
     const applicationsWithDetails =
-      await applicationService.getAllApplicationsWithDetails(statusFilters);
+      await applicationService.getAllApplicationsWithDetails(
+        tenantId,
+        statusFilters
+      );
 
     return res.success({
       filter: validatedQuery.type || "all",
@@ -47,6 +55,10 @@ exports.getAllApplications = async (req, res, next) => {
 
 exports.getApplicationById = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userType } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
       return next(
@@ -58,7 +70,10 @@ exports.getApplicationById = async (req, res, next) => {
     const { applicationId } = req.params;
 
     const applicationDetails =
-      await applicationService.getApplicationWithDetails(applicationId);
+      await applicationService.getApplicationWithDetails(
+        tenantId,
+        applicationId
+      );
     
     if (!applicationDetails) {
       return res.notFoundRecord("Application not found");
@@ -76,6 +91,10 @@ exports.getApplicationById = async (req, res, next) => {
 
 exports.approveApplication = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     // Check if user is CRM
     const { userType, creatorId } = extractUserAndCreatorContext(req);
     if (userType !== "CRM") {
@@ -96,6 +115,7 @@ exports.approveApplication = async (req, res, next) => {
 
     // Use the application service
     const updatedApplication = await applicationService.updateApplicationStatus(
+      tenantId,
       applicationId,
       applicationStatus,
       creatorId,

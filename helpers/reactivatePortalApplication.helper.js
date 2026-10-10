@@ -1,5 +1,6 @@
 const PersonalDetails = require("../models/personal.details.model");
 const { APPLICATION_STATUS } = require("../constants/enums");
+const { requireTenantId } = require("./tenantScope.js");
 
 function isReapplyApplication(personalDetails) {
   if (!personalDetails) return false;
@@ -13,10 +14,14 @@ function isReapplyApplication(personalDetails) {
  * Reset a rejected/inactive portal application to in-progress when the member
  * re-applies on the same applicationId (professional/subscription reactivation).
  */
-async function reactivatePersonalApplicationForReapply(applicationId) {
+async function reactivatePersonalApplicationForReapply(tenantId, applicationId) {
+  const scopedTenantId = requireTenantId(tenantId);
   if (!applicationId) return null;
 
-  const personal = await PersonalDetails.findOne({ applicationId });
+  const personal = await PersonalDetails.findOne({
+    tenantId: scopedTenantId,
+    applicationId,
+  });
   if (!personal) return null;
 
   const needsReactivation =
@@ -27,8 +32,8 @@ async function reactivatePersonalApplicationForReapply(applicationId) {
     return personal;
   }
 
-  return PersonalDetails.findByIdAndUpdate(
-    personal._id,
+  return PersonalDetails.findOneAndUpdate(
+    { _id: personal._id, tenantId: scopedTenantId },
     {
       $set: {
         applicationStatus: APPLICATION_STATUS.IN_PROGRESS,

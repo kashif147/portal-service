@@ -1,4 +1,5 @@
 const PersonalDetails = require("../models/personal.details.model");
+const { requireTenantId } = require("../helpers/tenantScope.js");
 const { stampPersonalInfoFullName } = require("../helpers/personal.info.fullName.js");
 
 const generateFullAddress = (contactInfo) => {
@@ -33,9 +34,10 @@ const generateFullAddress = (contactInfo) => {
   return parts.join(", ");
 };
 
-exports.create = (data) =>
+exports.create = (tenantId, data) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // Age calculation and date conversion
       if (data.personalInfo?.dateOfBirth) {
         let dob;
@@ -88,7 +90,11 @@ exports.create = (data) =>
         stampPersonalInfoFullName(data.personalInfo);
       }
 
-      const record = await PersonalDetails.create(data);
+      // Stamp the trusted tenant last so nothing in `data` can override it.
+      const record = await PersonalDetails.create({
+        ...data,
+        tenantId: scopedTenantId,
+      });
       resolve(record);
     } catch (error) {
       console.error("PersonalDetailsHandler [create] Error:", error);
@@ -96,9 +102,10 @@ exports.create = (data) =>
     }
   });
 
-exports.getByUserId = (userId) =>
+exports.getByUserId = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const mongoose = require("mongoose");
       
       // Convert userId to ObjectId if it's a string
@@ -108,7 +115,8 @@ exports.getByUserId = (userId) =>
 
       console.log("[getByUserId] Querying with userId:", userId, "converted to:", userIdQuery);
 
-      const result = await PersonalDetails.findOne({ 
+      const result = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         userId: userIdQuery,
         "meta.deleted": { $ne: true }
       });
@@ -122,10 +130,12 @@ exports.getByUserId = (userId) =>
     }
   });
 
-exports.getByEmail = (email) =>
+exports.getByEmail = (tenantId, email) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         $or: [
           { "contactInfo.personalEmail": email },
           { "contactInfo.workEmail": email },
@@ -138,10 +148,12 @@ exports.getByEmail = (email) =>
     }
   });
 
-exports.getApplicationById = (applicationId) =>
+exports.getApplicationById = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         applicationId: applicationId,
       });
       resolve(result);
@@ -154,10 +166,12 @@ exports.getApplicationById = (applicationId) =>
     }
   });
 
-exports.getByUserIdAndApplicationId = (userId, applicationId) =>
+exports.getByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         userId: userId,
         applicationId: applicationId,
       });
@@ -171,15 +185,19 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
     }
   });
 
-exports.updateByApplicationId = (applicationId, updateData) =>
+exports.updateByApplicationId = (tenantId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      // tenantId is immutable: never let an update payload move a row.
+      delete updateData.tenantId;
       if (updateData.contactInfo) {
         updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
       }
 
       if (updateData.personalInfo) {
         const existing = await PersonalDetails.findOne({
+          tenantId: scopedTenantId,
           applicationId,
         }).lean();
         const merged = {
@@ -191,7 +209,7 @@ exports.updateByApplicationId = (applicationId, updateData) =>
       }
 
       const record = await PersonalDetails.findOneAndUpdate(
-        { applicationId: applicationId },
+        { tenantId: scopedTenantId, applicationId: applicationId },
         updateData,
         {
           new: true,
@@ -209,15 +227,23 @@ exports.updateByApplicationId = (applicationId, updateData) =>
     }
   });
 
-exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
+exports.updateByUserIdAndApplicationId = (
+  tenantId,
+  userId,
+  applicationId,
+  updateData
+) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      delete updateData.tenantId;
       if (updateData.contactInfo) {
         updateData.contactInfo.fullAddress = generateFullAddress(updateData.contactInfo);
       }
 
       if (updateData.personalInfo) {
         const existing = await PersonalDetails.findOne({
+          tenantId: scopedTenantId,
           userId,
           applicationId,
         }).lean();
@@ -230,7 +256,7 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
       }
 
       const record = await PersonalDetails.findOneAndUpdate(
-        { userId: userId, applicationId: applicationId },
+        { tenantId: scopedTenantId, userId: userId, applicationId: applicationId },
         updateData,
         {
           new: true,
@@ -248,10 +274,12 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
     }
   });
 
-exports.deleteByApplicationId = (applicationId) =>
+exports.deleteByApplicationId = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const record = await PersonalDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
         applicationId: applicationId,
       });
       if (!record) return reject(new Error("Personal details not found"));
@@ -265,10 +293,12 @@ exports.deleteByApplicationId = (applicationId) =>
     }
   });
 
-exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
+exports.deleteByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const record = await PersonalDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
         userId: userId,
         applicationId: applicationId,
       });
@@ -283,11 +313,12 @@ exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
     }
   });
 
-exports.updateApplicationStatus = (applicationId, status) =>
+exports.updateApplicationStatus = (tenantId, applicationId, status) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await PersonalDetails.findOneAndUpdate(
-        { applicationId: applicationId },
+        { tenantId: scopedTenantId, applicationId: applicationId },
         { applicationStatus: status },
         { new: true }
       );
@@ -301,9 +332,10 @@ exports.updateApplicationStatus = (applicationId, status) =>
     }
   });
 
-exports.getByUserIdForPortal = (userId) =>
+exports.getByUserIdForPortal = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const mongoose = require("mongoose");
       const { APPLICATION_STATUS } = require("../constants/enums");
 
@@ -315,6 +347,7 @@ exports.getByUserIdForPortal = (userId) =>
       console.log("[getByUserIdForPortal] Querying with userId:", userId, "converted to:", userIdQuery);
 
       const baseQuery = {
+        tenantId: scopedTenantId,
         userId: userIdQuery,
         "meta.userType": "PORTAL",
         "meta.deleted": { $ne: true },
@@ -344,9 +377,10 @@ exports.getByUserIdForPortal = (userId) =>
     }
   });
 
-exports.getActiveByUserIdForPortal = (userId) =>
+exports.getActiveByUserIdForPortal = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const mongoose = require("mongoose");
 
       const userIdQuery = typeof userId === "string" && mongoose.Types.ObjectId.isValid(userId)
@@ -354,6 +388,7 @@ exports.getActiveByUserIdForPortal = (userId) =>
         : userId;
 
       const result = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         userId: userIdQuery,
         "meta.userType": "PORTAL",
         "meta.deleted": { $ne: true },

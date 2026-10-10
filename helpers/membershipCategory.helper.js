@@ -62,11 +62,14 @@ function mergeLegacyProfessionalFieldsFromSubscription(
 async function readLegacyProfessionalFieldsFromSubscriptionRecord(
   subscriptionRecord,
 ) {
-  if (!subscriptionRecord?._id) return {};
+  // The record was already loaded through a tenant-scoped query; re-read the
+  // raw legacy fields with the same {_id, tenantId} pair. A record without a
+  // tenant (pre-backfill) yields no legacy fields rather than an unscoped read.
+  if (!subscriptionRecord?._id || !subscriptionRecord?.tenantId) return {};
 
   const SubscriptionDetails = require("../models/subscription.model");
   const raw = await SubscriptionDetails.collection.findOne(
-    { _id: subscriptionRecord._id },
+    { _id: subscriptionRecord._id, tenantId: subscriptionRecord.tenantId },
     {
       projection: {
         "subscriptionDetails.previousMembershipNo": 1,
@@ -152,6 +155,7 @@ function pickRequestedSubscriptionDetails(validatedData, rawBody) {
 }
 
 async function syncMembershipCategoryToSubscription({
+  tenantId,
   applicationId,
   membershipCategory,
   userId,
@@ -162,11 +166,12 @@ async function syncMembershipCategoryToSubscription({
   if (!category || !applicationId) return;
 
   const existing = await subscriptionDetailsHandler.getByApplicationId(
+    tenantId,
     applicationId
   );
   if (!existing) return;
 
-  await subscriptionDetailsHandler.updateByApplicationId(applicationId, {
+  await subscriptionDetailsHandler.updateByApplicationId(tenantId, applicationId, {
     "subscriptionDetails.membershipCategory": category,
     "meta.updatedBy": userId,
     "meta.userType": userType,
@@ -174,6 +179,7 @@ async function syncMembershipCategoryToSubscription({
 }
 
 async function syncLegacyProfessionalFieldsFromSubscriptionBody({
+  tenantId,
   applicationId,
   body,
   userId,
@@ -185,6 +191,7 @@ async function syncLegacyProfessionalFieldsFromSubscriptionBody({
   if (!legacyFields || !applicationId) return;
 
   const existing = await professionalDetailsHandler.getByApplicationId(
+    tenantId,
     applicationId,
   );
   if (!existing) return;
@@ -197,8 +204,13 @@ async function syncLegacyProfessionalFieldsFromSubscriptionBody({
     update[`professionalDetails.${key}`] = value;
   }
 
-  await professionalDetailsHandler.updateByApplicationId(applicationId, update);
+  await professionalDetailsHandler.updateByApplicationId(
+    tenantId,
+    applicationId,
+    update,
+  );
   await subscriptionDetailsHandler.unsetLegacyProfessionalFieldsByApplicationId(
+    tenantId,
     applicationId,
   );
 }

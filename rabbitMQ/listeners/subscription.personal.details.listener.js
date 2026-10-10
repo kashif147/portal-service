@@ -1,4 +1,5 @@
 const PersonalDetails = require("../../models/personal.details.model.js");
+const { getEventTenantId } = require("../../helpers/tenantScope.js");
 
 function normalizeMembershipPayload(payload) {
   const data = payload?.data || payload;
@@ -21,8 +22,18 @@ async function setPersonalDetailsInactiveFromMembershipEvent(payload, reason) {
     return;
   }
 
+  // Envelope tenant (payload.tenantId) is authoritative; data.tenantId mirror.
+  const tenantId = getEventTenantId(payload, data);
+  if (!tenantId) {
+    console.warn(
+      "[portal.subscription.personal.details] Missing tenantId (envelope or data); skip meta.isActive update",
+      { reason, applicationId }
+    );
+    return;
+  }
+
   const result = await PersonalDetails.updateOne(
-    { applicationId },
+    { tenantId, applicationId },
     { $set: { "meta.isActive": false } }
   );
 
@@ -49,8 +60,18 @@ async function setPersonalDetailsActiveFromMembershipEvent(payload, reason) {
     return;
   }
 
+  // Envelope tenant (payload.tenantId) is authoritative; data.tenantId mirror.
+  const tenantId = getEventTenantId(payload, data);
+  if (!tenantId) {
+    console.warn(
+      "[portal.subscription.personal.details] Missing tenantId (envelope or data); skip meta.isActive update",
+      { reason, applicationId }
+    );
+    return;
+  }
+
   const result = await PersonalDetails.updateOne(
-    { applicationId },
+    { tenantId, applicationId },
     { $set: { "meta.isActive": true } }
   );
 

@@ -135,8 +135,10 @@ async function setupConsumers() {
         }
       );
       try {
+        // Envelope tenant first; the listener falls back to data.tenantId.
         await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
-          data
+          data,
+          payload.tenantId
         );
         bizLogger.business("RabbitMQ payment event processed", {
           eventType,
@@ -232,7 +234,10 @@ async function setupConsumers() {
             applicationStatus: data?.applicationStatus,
           }
         );
-        await ApplicationApprovalListener.handleApplicationApproved(data);
+        await ApplicationApprovalListener.handleApplicationApproved(
+          data,
+          payload.tenantId
+        );
       }
     );
 
@@ -248,7 +253,10 @@ async function setupConsumers() {
             reason: data?.reason,
           }
         );
-        await ApplicationRejectionListener.handleApplicationRejected(data);
+        await ApplicationRejectionListener.handleApplicationRejected(
+          data,
+          payload.tenantId
+        );
       }
     );
 
@@ -297,7 +305,7 @@ async function setupConsumers() {
             workLocation: data?.workLocation,
           }
         );
-        await handleProfessionalWorkLocationUpdated(data);
+        await handleProfessionalWorkLocationUpdated(data, payload?.tenantId);
       }
     );
     consumer.registerHandler(

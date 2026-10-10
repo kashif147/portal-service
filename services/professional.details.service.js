@@ -3,6 +3,10 @@ const personalDetailsHandler = require("../handlers/personal.details.handler");
 const subscriptionDetailsHandler = require("../handlers/subscription.details.handler");
 const { AppError } = require("../errors/AppError");
 const {
+  requireTenantId,
+  requirePortalUserId,
+} = require("../helpers/tenantScope.js");
+const {
   attachMembershipCategoryToProfessionalData,
   enrichProfessionalWithSubscriptionMembershipCategory,
   professionalPayloadIncludesMigratedFields,
@@ -10,11 +14,13 @@ const {
 } = require("../helpers/membershipCategory.helper.js");
 
 async function clearLegacyProfessionalFieldsFromSubscription(
+  tenantId,
   applicationId,
   professionalPayload = {},
 ) {
   if (!professionalPayloadIncludesMigratedFields(professionalPayload)) return;
   await subscriptionDetailsHandler.unsetLegacyProfessionalFieldsByApplicationId(
+    tenantId,
     applicationId,
   );
 }
@@ -37,6 +43,7 @@ class ProfessionalDetailsService {
    * @returns {Promise<Object>} Created professional details
    */
   async createProfessionalDetails(
+    tenantId,
     data,
     applicationId,
     userId,
@@ -44,6 +51,8 @@ class ProfessionalDetailsService {
     membershipCategory = null
   ) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!data) {
         throw AppError.badRequest("Professional details data is required");
       }
@@ -52,8 +61,9 @@ class ProfessionalDetailsService {
         throw AppError.badRequest("Application ID is required");
       }
 
-      // Check if application exists
+      // Check if application exists (in the caller's tenant only)
       const personalDetails = await personalDetailsHandler.getApplicationById(
+        scopedTenantId,
         applicationId
       );
       if (!personalDetails) {
@@ -63,7 +73,10 @@ class ProfessionalDetailsService {
       // Upsert: if professional details already exist for this application,
       // update them instead of returning 409 (handles re-apply and stale POSTs).
       const existingDetails =
-        await professionalDetailsHandler.getByApplicationId(applicationId);
+        await professionalDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        );
       if (existingDetails) {
         if (userType !== "CRM") {
           if (personalDetails.userId?.toString() !== userId?.toString()) {
@@ -74,7 +87,10 @@ class ProfessionalDetailsService {
         }
 
         if (isReapplyApplication(personalDetails)) {
-          await reactivatePersonalApplicationForReapply(applicationId);
+          await reactivatePersonalApplicationForReapply(
+            scopedTenantId,
+            applicationId
+          );
         }
 
         const updatePayload = attachMembershipCategoryToProfessionalData(
@@ -88,11 +104,13 @@ class ProfessionalDetailsService {
         );
 
         const result = await professionalDetailsHandler.updateByApplicationId(
+          scopedTenantId,
           applicationId,
           updatePayload
         );
 
         await syncMembershipCategoryToSubscription({
+          tenantId: scopedTenantId,
           applicationId,
           membershipCategory,
           userId,
@@ -101,13 +119,17 @@ class ProfessionalDetailsService {
         });
 
         await clearLegacyProfessionalFieldsFromSubscription(
+          scopedTenantId,
           applicationId,
           data?.professionalDetails,
         );
 
         return await enrichProfessionalWithSubscriptionMembershipCategory(
           result,
-          await subscriptionDetailsHandler.getByApplicationId(applicationId),
+          await subscriptionDetailsHandler.getByApplicationId(
+            scopedTenantId,
+            applicationId
+          ),
         );
       }
 
@@ -130,9 +152,13 @@ class ProfessionalDetailsService {
         membershipCategory
       );
 
-      const result = await professionalDetailsHandler.create(createData);
+      const result = await professionalDetailsHandler.create(
+        scopedTenantId,
+        createData
+      );
 
       await syncMembershipCategoryToSubscription({
+        tenantId: scopedTenantId,
         applicationId,
         membershipCategory,
         userId,
@@ -141,6 +167,7 @@ class ProfessionalDetailsService {
       });
 
       await clearLegacyProfessionalFieldsFromSubscription(
+        scopedTenantId,
         applicationId,
         data?.professionalDetails,
       );
@@ -162,21 +189,28 @@ class ProfessionalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Professional details
    */
-  async getProfessionalDetails(applicationId, userId, userType) {
+  async getProfessionalDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
       // Validate parent resource: check if application exists
       const personalDetails = await personalDetailsHandler.getApplicationById(
+        scopedTenantId,
         applicationId
       );
       if (!personalDetails) {
         throw AppError.notFound("Application not found");
       }
 
-      const professionalDetails = await professionalDetailsHandler.getByApplicationId(applicationId);
+      const professionalDetails =
+        await professionalDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        );
       
       // If application exists but professional details don't, return null (will be handled as 200 OK with null)
       if (!professionalDetails) {
@@ -193,7 +227,10 @@ class ProfessionalDetailsService {
       }
 
       const subscriptionDetails =
-        await subscriptionDetailsHandler.getByApplicationId(applicationId);
+        await subscriptionDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        );
 
       return await enrichProfessionalWithSubscriptionMembershipCategory(
         professionalDetails,
@@ -217,6 +254,7 @@ class ProfessionalDetailsService {
    * @returns {Promise<Object>} Updated professional details
    */
   async updateProfessionalDetails(
+    tenantId,
     applicationId,
     updateData,
     userId,
@@ -224,6 +262,8 @@ class ProfessionalDetailsService {
     membershipCategory = null
   ) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -244,12 +284,14 @@ class ProfessionalDetailsService {
       let result;
       if (userType === "CRM") {
         result = await professionalDetailsHandler.updateByApplicationId(
+          scopedTenantId,
           applicationId,
           updatePayload
         );
       } else {
         result =
           await professionalDetailsHandler.updateByUserIdAndApplicationId(
+            scopedTenantId,
             userId,
             applicationId,
             updatePayload
@@ -257,6 +299,7 @@ class ProfessionalDetailsService {
       }
 
       await syncMembershipCategoryToSubscription({
+        tenantId: scopedTenantId,
         applicationId,
         membershipCategory,
         userId,
@@ -265,13 +308,17 @@ class ProfessionalDetailsService {
       });
 
       await clearLegacyProfessionalFieldsFromSubscription(
+        scopedTenantId,
         applicationId,
         updateData?.professionalDetails,
       );
 
       return await enrichProfessionalWithSubscriptionMembershipCategory(
         result,
-        await subscriptionDetailsHandler.getByApplicationId(applicationId),
+        await subscriptionDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        ),
       );
     } catch (error) {
       console.error(
@@ -289,8 +336,9 @@ class ProfessionalDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Deleted professional details
    */
-  async deleteProfessionalDetails(applicationId, userId, userType) {
+  async deleteProfessionalDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -298,12 +346,14 @@ class ProfessionalDetailsService {
       let result;
       if (userType === "CRM") {
         result = await professionalDetailsHandler.deleteByApplicationId(
+          scopedTenantId,
           applicationId
         );
       } else {
         result =
           await professionalDetailsHandler.deleteByUserIdAndApplicationId(
-            userId,
+            scopedTenantId,
+            requirePortalUserId(userId),
             applicationId
           );
       }
@@ -323,18 +373,20 @@ class ProfessionalDetailsService {
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Professional details
    */
-  async getMyProfessionalDetails(userId) {
+  async getMyProfessionalDetails(tenantId, userId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!userId) {
         throw AppError.badRequest("User ID is required");
       }
 
       const professionalDetails =
-        await professionalDetailsHandler.getByUserId(userId);
+        await professionalDetailsHandler.getByUserId(scopedTenantId, userId);
       if (!professionalDetails) return null;
 
       const subscriptionDetails = professionalDetails.applicationId
         ? await subscriptionDetailsHandler.getByApplicationId(
+            scopedTenantId,
             professionalDetails.applicationId
           )
         : null;
@@ -357,13 +409,15 @@ class ProfessionalDetailsService {
    * @param {string} applicationId - Application ID
    * @returns {Promise<boolean>} True if exists, false otherwise
    */
-  async checkProfessionalDetailsExist(applicationId) {
+  async checkProfessionalDetailsExist(tenantId, applicationId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
       const details = await professionalDetailsHandler.getByApplicationId(
+        scopedTenantId,
         applicationId
       );
       return !!details;

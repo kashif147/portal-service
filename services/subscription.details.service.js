@@ -9,6 +9,10 @@ const {
   reactivatePersonalApplicationForReapply,
 } = require("../helpers/reactivatePortalApplication.helper.js");
 const mongoose = require("mongoose");
+const {
+  requireTenantId,
+  requirePortalUserId,
+} = require("../helpers/tenantScope.js");
 
 async function resolveMembershipCategoryName(membershipCategoryId) {
   if (!membershipCategoryId) return null;
@@ -71,15 +75,10 @@ async function handlePostSubscriptionSubmission({
   applicationId,
   professionalDetails,
   tenantId,
-  req = null,
 }) {
-  const resolvedTenantId =
-    tenantId ||
-    req?.tenantId ||
-    req?.ctx?.tenantId ||
-    req?.user?.tenantId ||
-    req?.headers?.["x-tenant-id"] ||
-    null;
+  // Trusted tenant only (passed down from the controller's auth context);
+  // never re-derived from request headers here.
+  const resolvedTenantId = requireTenantId(tenantId);
 
   const membershipCategoryId =
     result?.subscriptionDetails?.membershipCategory ||
@@ -97,6 +96,7 @@ async function handlePostSubscriptionSubmission({
       "📝 [SUBSCRIPTION_SERVICE] Undergraduate Student - updating status to submitted"
     );
     await personalDetailsHandler.updateApplicationStatus(
+      resolvedTenantId,
       applicationId,
       APPLICATION_STATUS.SUBMITTED
     );
@@ -106,20 +106,23 @@ async function handlePostSubscriptionSubmission({
     );
   }
 
-  if (isUndergraduateStudent && resolvedTenantId) {
+  if (isUndergraduateStudent) {
     try {
       console.log(
         "📤 [SUBSCRIPTION_SERVICE] Triggering profile service event for Undergraduate Student (no payment required)"
       );
 
-      await ApplicationStatusUpdateListener.handleApplicationStatusUpdate({
-        applicationId,
-        status: APPLICATION_STATUS.SUBMITTED,
-        paymentIntentId: null,
-        amount: null,
-        currency: null,
-        tenantId: resolvedTenantId,
-      });
+      await ApplicationStatusUpdateListener.handleApplicationStatusUpdate(
+        {
+          applicationId,
+          status: APPLICATION_STATUS.SUBMITTED,
+          paymentIntentId: null,
+          amount: null,
+          currency: null,
+          tenantId: resolvedTenantId,
+        },
+        resolvedTenantId
+      );
 
       console.log(
         "✅ [SUBSCRIPTION_SERVICE] Profile service event triggered successfully for Undergraduate Student"
@@ -130,20 +133,9 @@ async function handlePostSubscriptionSubmission({
         eventError
       );
     }
-  } else if (!isUndergraduateStudent) {
+  } else {
     console.log(
       "ℹ️ [SUBSCRIPTION_SERVICE] Membership category is not 'Undergraduate Student', event will be published when payment is processed"
-    );
-  } else if (!resolvedTenantId) {
-    console.warn(
-      "⚠️ [SUBSCRIPTION_SERVICE] tenantId not provided, skipping RabbitMQ event publication",
-      {
-        applicationId,
-        hasRequestTenantId: !!req?.tenantId,
-        hasRequestContextTenantId: !!req?.ctx?.tenantId,
-        hasUserTenantId: !!req?.user?.tenantId,
-        hasHeaderTenantId: !!req?.headers?.["x-tenant-id"],
-      }
     );
   }
 
@@ -173,6 +165,8 @@ class SubscriptionDetailsService {
     req = null
   ) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!data) {
         throw AppError.badRequest("Subscription details data is required");
       }
@@ -181,8 +175,9 @@ class SubscriptionDetailsService {
         throw AppError.badRequest("Application ID is required");
       }
 
-      // Check if application exists
+      // Check if application exists (in the caller's tenant only)
       const personalDetails = await personalDetailsHandler.getApplicationById(
+        scopedTenantId,
         applicationId
       );
       if (!personalDetails) {
@@ -191,7 +186,10 @@ class SubscriptionDetailsService {
 
       // Check if subscription details already exist
       const existingDetails =
-        await subscriptionDetailsHandler.getByApplicationId(applicationId);
+        await subscriptionDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        );
       if (existingDetails) {
         if (userType !== "CRM") {
           if (personalDetails.userId?.toString() !== userId?.toString()) {
@@ -202,11 +200,17 @@ class SubscriptionDetailsService {
         }
 
         if (isReapplyApplication(personalDetails)) {
-          await reactivatePersonalApplicationForReapply(applicationId);
+          await reactivatePersonalApplicationForReapply(
+            scopedTenantId,
+            applicationId
+          );
         }
 
         const professionalDetails =
-          await professionalDetailsHandler.getByApplicationId(applicationId);
+          await professionalDetailsHandler.getByApplicationId(
+            scopedTenantId,
+            applicationId
+          );
         const membershipCategoryFromProfessional =
           professionalDetails?.professionalDetails?.membershipCategory ?? null;
 
@@ -250,28 +254,32 @@ class SubscriptionDetailsService {
           professionalDetails?.professionalDetails,
           {
             req,
-            tenantId,
+            tenantId: scopedTenantId,
             professionalDetailsOverride: req?.body?.professionalDetails,
           }
         );
 
         const result = await subscriptionDetailsHandler.updateByApplicationId(
+          scopedTenantId,
           applicationId,
           updateData
         );
 
         if (!updateData.subscriptionDetails?.submissionDate) {
-          await subscriptionDetailsHandler.updateByApplicationId(applicationId, {
-            "subscriptionDetails.submissionDate": new Date(),
-          });
+          await subscriptionDetailsHandler.updateByApplicationId(
+            scopedTenantId,
+            applicationId,
+            {
+              "subscriptionDetails.submissionDate": new Date(),
+            }
+          );
         }
 
         return handlePostSubscriptionSubmission({
           result,
           applicationId,
           professionalDetails,
-          tenantId,
-          req,
+          tenantId: scopedTenantId,
         });
       }
 
@@ -285,7 +293,10 @@ class SubscriptionDetailsService {
       }
 
       const professionalDetails =
-        await professionalDetailsHandler.getByApplicationId(applicationId);
+        await professionalDetailsHandler.getByApplicationId(
+          scopedTenantId,
+          applicationId
+        );
       const membershipCategoryFromProfessional =
         professionalDetails?.professionalDetails?.membershipCategory ?? null;
 
@@ -329,7 +340,7 @@ class SubscriptionDetailsService {
         professionalDetails?.professionalDetails,
         {
           req,
-          tenantId,
+          tenantId: scopedTenantId,
           professionalDetailsOverride: req?.body?.professionalDetails,
         }
       );
@@ -339,14 +350,16 @@ class SubscriptionDetailsService {
         createData.subscriptionDetails.submissionDate = new Date();
       }
 
-      const result = await subscriptionDetailsHandler.create(createData);
+      const result = await subscriptionDetailsHandler.create(
+        scopedTenantId,
+        createData
+      );
 
       return handlePostSubscriptionSubmission({
         result,
         applicationId,
         professionalDetails,
-        tenantId,
-        req,
+        tenantId: scopedTenantId,
       });
     } catch (error) {
       console.error(
@@ -364,14 +377,17 @@ class SubscriptionDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Subscription details
    */
-  async getSubscriptionDetails(applicationId, userId, userType) {
+  async getSubscriptionDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
       // Validate parent resource: check if application exists
       const personalDetails = await personalDetailsHandler.getApplicationById(
+        scopedTenantId,
         applicationId
       );
       if (!personalDetails) {
@@ -380,10 +396,12 @@ class SubscriptionDetailsService {
 
       if (userType === "CRM") {
         return await subscriptionDetailsHandler.getApplicationById(
+          scopedTenantId,
           applicationId
         );
       } else {
         return await subscriptionDetailsHandler.getByUserIdAndApplicationId(
+          scopedTenantId,
           userId,
           applicationId
         );
@@ -406,6 +424,7 @@ class SubscriptionDetailsService {
    * @returns {Promise<Object>} Updated subscription details
    */
   async updateSubscriptionDetails(
+    tenantId,
     applicationId,
     updateData,
     userId,
@@ -413,6 +432,8 @@ class SubscriptionDetailsService {
     req = null
   ) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      if (userType !== "CRM") requirePortalUserId(userId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -450,8 +471,20 @@ class SubscriptionDetailsService {
           applyNoFeeMembershipPaymentDefaults,
         } = require("../helpers/noFeeMembershipPayment.helper.js");
         const [professionalDetails, existingDetails] = await Promise.all([
-          professionalDetailsHandler.getByApplicationId(applicationId),
-          subscriptionDetailsHandler.getByApplicationId(applicationId),
+          professionalDetailsHandler.getByApplicationId(
+            scopedTenantId,
+            applicationId
+          ),
+          userType === "CRM"
+            ? subscriptionDetailsHandler.getByApplicationId(
+                scopedTenantId,
+                applicationId
+              )
+            : subscriptionDetailsHandler.getByUserIdAndApplicationId(
+                scopedTenantId,
+                userId,
+                applicationId
+              ),
         ]);
 
         const mergedSubscriptionDetails = {
@@ -470,11 +503,7 @@ class SubscriptionDetailsService {
           professionalDetails?.professionalDetails,
           {
             req,
-            tenantId:
-              req?.tenantId ||
-              req?.ctx?.tenantId ||
-              existingDetails?.tenantId ||
-              "",
+            tenantId: scopedTenantId,
             professionalDetailsOverride: req?.body?.professionalDetails,
           }
         );
@@ -489,17 +518,21 @@ class SubscriptionDetailsService {
       let result;
       if (userType === "CRM") {
         const existingDetails =
-          await subscriptionDetailsHandler.getByApplicationId(applicationId);
+          await subscriptionDetailsHandler.getByApplicationId(
+            scopedTenantId,
+            applicationId
+          );
 
         if (!existingDetails) {
           const personalDetails = await personalDetailsHandler.getApplicationById(
+            scopedTenantId,
             applicationId
           );
           if (!personalDetails) {
             throw AppError.notFound("Application not found");
           }
 
-          result = await subscriptionDetailsHandler.create({
+          result = await subscriptionDetailsHandler.create(scopedTenantId, {
             applicationId,
             userId: personalDetails.userId ?? userId,
             subscriptionDetails: safeUpdateData.subscriptionDetails || {},
@@ -510,6 +543,7 @@ class SubscriptionDetailsService {
           });
         } else {
           result = await subscriptionDetailsHandler.updateByApplicationId(
+            scopedTenantId,
             applicationId,
             updatePayload
           );
@@ -517,6 +551,7 @@ class SubscriptionDetailsService {
       } else {
         result =
           await subscriptionDetailsHandler.updateByUserIdAndApplicationId(
+            scopedTenantId,
             userId,
             applicationId,
             updatePayload
@@ -540,8 +575,9 @@ class SubscriptionDetailsService {
    * @param {string} userType - User type (CRM/PORTAL)
    * @returns {Promise<Object>} Deleted subscription details
    */
-  async deleteSubscriptionDetails(applicationId, userId, userType) {
+  async deleteSubscriptionDetails(tenantId, applicationId, userId, userType) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
@@ -549,12 +585,14 @@ class SubscriptionDetailsService {
       let result;
       if (userType === "CRM") {
         result = await subscriptionDetailsHandler.deleteByApplicationId(
+          scopedTenantId,
           applicationId
         );
       } else {
         result =
           await subscriptionDetailsHandler.deleteByUserIdAndApplicationId(
-            userId,
+            scopedTenantId,
+            requirePortalUserId(userId),
             applicationId
           );
       }
@@ -574,13 +612,15 @@ class SubscriptionDetailsService {
    * @param {string} applicationId - Application ID
    * @returns {Promise<boolean>} True if exists, false otherwise
    */
-  async checkSubscriptionDetailsExist(applicationId) {
+  async checkSubscriptionDetailsExist(tenantId, applicationId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
       const details = await subscriptionDetailsHandler.getByApplicationId(
+        scopedTenantId,
         applicationId
       );
       return !!details;
@@ -598,13 +638,14 @@ class SubscriptionDetailsService {
    * @param {string} email - Email address
    * @returns {Promise<Object>} Subscription details
    */
-  async getSubscriptionDetailsByEmail(email) {
+  async getSubscriptionDetailsByEmail(tenantId, email) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!email) {
         throw AppError.badRequest("Email is required");
       }
 
-      return await subscriptionDetailsHandler.getByEmail(email);
+      return await subscriptionDetailsHandler.getByEmail(scopedTenantId, email);
     } catch (error) {
       console.error(
         "SubscriptionDetailsService [getSubscriptionDetailsByEmail] Error:",
@@ -619,13 +660,17 @@ class SubscriptionDetailsService {
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Subscription details
    */
-  async getMySubscriptionDetails(userId) {
+  async getMySubscriptionDetails(tenantId, userId) {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       if (!userId) {
         throw AppError.badRequest("User ID is required");
       }
 
-      const subscriptionDetails = await subscriptionDetailsHandler.getByUserId(userId);
+      const subscriptionDetails = await subscriptionDetailsHandler.getByUserId(
+        scopedTenantId,
+        userId
+      );
       
       if (!subscriptionDetails) {
         throw new Error("Subscription details not found");

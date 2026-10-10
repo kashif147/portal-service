@@ -4,6 +4,7 @@ const personalDetailsHandler = require("../handlers/personal.details.handler");
 const { extractUserAndCreatorContext } = require("../helpers/get.user.info.js");
 const joischemas = require("../validation/index.js");
 const { AppError } = require("../errors/AppError");
+const { getTrustedTenantId } = require("../helpers/tenantScope.js");
 const {
   extractMembershipCategoryFromRequestBody,
 } = require("../helpers/membershipCategory.helper.js");
@@ -35,6 +36,10 @@ const {
 
 exports.createProfessionalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const validatedData =
       await joischemas.professional_details_create.validateAsync(req.body);
@@ -45,6 +50,7 @@ exports.createProfessionalDetails = async (req, res, next) => {
 
     // Create new professional details
     const result = await professionalDetailsService.createProfessionalDetails(
+      tenantId,
       validatedData,
       applicationId,
       userId,
@@ -67,6 +73,10 @@ exports.createProfessionalDetails = async (req, res, next) => {
 
 exports.getProfessionalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -82,6 +92,7 @@ exports.getProfessionalDetails = async (req, res, next) => {
 
     const professionalDetails =
       await professionalDetailsService.getProfessionalDetails(
+        tenantId,
         applicationId,
         userId,
         userType
@@ -109,6 +120,10 @@ exports.getProfessionalDetails = async (req, res, next) => {
 
 exports.updateProfessionalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType, creatorId } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -121,6 +136,7 @@ exports.updateProfessionalDetails = async (req, res, next) => {
     const membershipCategory = extractMembershipCategoryFromRequestBody(req.body);
 
     const result = await professionalDetailsService.updateProfessionalDetails(
+      tenantId,
       applicationId,
       validatedData,
       userId,
@@ -146,6 +162,10 @@ exports.updateProfessionalDetails = async (req, res, next) => {
 
 exports.deleteProfessionalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
     const applicationId = req.params.applicationId;
 
@@ -154,6 +174,7 @@ exports.deleteProfessionalDetails = async (req, res, next) => {
     }
 
     await professionalDetailsService.deleteProfessionalDetails(
+      tenantId,
       applicationId,
       userId,
       userType
@@ -174,6 +195,10 @@ exports.deleteProfessionalDetails = async (req, res, next) => {
 
 exports.getMyProfessionalDetails = async (req, res, next) => {
   try {
+    const tenantId = getTrustedTenantId(req);
+    if (!tenantId) {
+      return next(AppError.forbidden("Tenant context required"));
+    }
     const { userId, userType } = extractUserAndCreatorContext(req);
 
     // Only allow PORTAL users to access this endpoint
@@ -186,7 +211,10 @@ exports.getMyProfessionalDetails = async (req, res, next) => {
     }
 
     const professionalDetails =
-      await professionalDetailsService.getMyProfessionalDetails(userId);
+      await professionalDetailsService.getMyProfessionalDetails(
+        tenantId,
+        userId
+      );
 
     if (!professionalDetails) {
       return res.notFoundRecord("Professional details not found");

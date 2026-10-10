@@ -1,4 +1,5 @@
 const ProfessionalDetails = require("../../models/professional.details.model");
+const { getEventTenantId } = require("../../helpers/tenantScope.js");
 
 /**
  * Handle work location updates coming from profile-service.
@@ -6,8 +7,21 @@ const ProfessionalDetails = require("../../models/professional.details.model");
  * Strategy: update by both userId and applicationId to ensure correct record is updated.
  * Since a user can have multiple applications, using only userId would update the wrong record.
  */
-async function handleProfessionalWorkLocationUpdated(payload = {}) {
+async function handleProfessionalWorkLocationUpdated(
+  payload = {},
+  envelopeTenantId
+) {
   const { userId, applicationId, workLocation, branch, region } = payload;
+
+  // Envelope tenant is authoritative; data.tenantId is the fallback mirror.
+  const tenantId = getEventTenantId({ tenantId: envelopeTenantId }, payload);
+  if (!tenantId) {
+    console.warn(
+      "[PROFESSIONAL_WORK_LOCATION_UPDATED] Missing tenantId (envelope or data), skipping",
+      { applicationId: applicationId || null }
+    );
+    return;
+  }
 
   if (!userId) {
     console.warn(
@@ -26,7 +40,7 @@ async function handleProfessionalWorkLocationUpdated(payload = {}) {
 
   try {
     const updateResult = await ProfessionalDetails.updateOne(
-      { userId, applicationId },
+      { tenantId, userId, applicationId },
       {
         $set: {
           "professionalDetails.workLocation": workLocation,

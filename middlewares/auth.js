@@ -200,10 +200,10 @@ const authenticate = async (req, res, next) => {
     });
     next();
   } catch (error) {
+    // Log the detail server-side only; never echo the verifier error to clients.
     console.error("JWT Verification Error:", error.message);
     const authError = AppError.badRequest("Invalid token", {
       tokenError: true,
-      jwtError: error.message,
     });
     return res.status(authError.status).json({
       error: {
@@ -211,7 +211,6 @@ const authenticate = async (req, res, next) => {
         code: authError.code,
         status: authError.status,
         tokenError: authError.tokenError,
-        jwtError: authError.jwtError,
       },
     });
   }

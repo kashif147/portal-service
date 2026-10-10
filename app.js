@@ -75,6 +75,8 @@ const {
 const loggerMiddleware = require("./middlewares/logger.mw");
 const responseMiddleware = require("./middlewares/response.mw");
 const { defaultPolicyMiddleware } = require("./middlewares/policy.middleware");
+const { authenticate } = require("./middlewares/auth");
+const { tenantContextWarn } = require("./middlewares/tenantContext.mw");
 
 // require("message-bus/src/index");
 
@@ -198,7 +200,14 @@ app.get("/api", (req, res) => {
 // Auth routes (no authentication required)
 app.use("/auth", require("./routes/auth.routes"));
 
-// API routes (authentication handled by policy middleware in individual routes)
+// Everything below this point is authenticated. `authenticate` establishes the
+// trusted identity/tenant (gateway-verified headers, else verified Bearer JWT)
+// on req.ctx; `tenantContextWarn` (WARN mode, never blocks) re-pins req.tenantId
+// to it and logs any mismatching caller-supplied tenantId. Each route's
+// autoRequirePermission() (PDP) still runs afterwards:
+//   authenticate -> tenantContextWarn -> autoRequirePermission -> handler
+app.use(authenticate);
+app.use(tenantContextWarn);
 app.use("/api", require("./routes/index"));
 
 app.use(function (req, res, next) {

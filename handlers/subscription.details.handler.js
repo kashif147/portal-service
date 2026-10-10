@@ -1,10 +1,27 @@
 const SubscriptionDetails = require("../models/subscription.model");
 const personalDetails = require("../models/personal.details.model");
+const { requireTenantId } = require("../helpers/tenantScope.js");
 
-exports.create = (data) =>
+// Every exported function takes the trusted tenantId as its FIRST argument and
+// includes it in every query/update/delete. A missing tenant throws (403) —
+// there is no unscoped fallback.
+
+const emailQuery = (email) => ({
+  $or: [
+    { "contactInfo.personalEmail": email },
+    { "contactInfo.workEmail": email },
+  ],
+});
+
+exports.create = (tenantId, data) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await SubscriptionDetails.create(data);
+      const scopedTenantId = requireTenantId(tenantId);
+      // Stamp the trusted tenant last so nothing in `data` can override it.
+      const record = await SubscriptionDetails.create({
+        ...data,
+        tenantId: scopedTenantId,
+      });
       resolve(record);
     } catch (error) {
       console.error("SubscriptionDetailsHandler [create] Error:", error);
@@ -12,10 +29,14 @@ exports.create = (data) =>
     }
   });
 
-exports.getByApplicationId = (applicationId) =>
+exports.getByApplicationId = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await SubscriptionDetails.findOne({ applicationId });
+      const scopedTenantId = requireTenantId(tenantId);
+      const record = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
+        applicationId,
+      });
       resolve(record);
     } catch (error) {
       console.error(
@@ -26,11 +47,14 @@ exports.getByApplicationId = (applicationId) =>
     }
   });
 
-exports.updateByApplicationId = (applicationId, updateData) =>
+exports.updateByApplicationId = (tenantId, applicationId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      // tenantId is immutable: never let an update payload move a row.
+      delete updateData.tenantId;
       const record = await SubscriptionDetails.findOneAndUpdate(
-        { applicationId },
+        { tenantId: scopedTenantId, applicationId },
         updateData,
         {
           new: true,
@@ -48,14 +72,18 @@ exports.updateByApplicationId = (applicationId, updateData) =>
     }
   });
 
-exports.unsetLegacyProfessionalFieldsByApplicationId = (applicationId) =>
+exports.unsetLegacyProfessionalFieldsByApplicationId = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const existing = await SubscriptionDetails.findOne({ applicationId });
+      const scopedTenantId = requireTenantId(tenantId);
+      const existing = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
+        applicationId,
+      });
       if (!existing) return resolve(false);
 
       await SubscriptionDetails.collection.updateOne(
-        { _id: existing._id },
+        { _id: existing._id, tenantId: scopedTenantId },
         {
           $unset: {
             "subscriptionDetails.previousMembershipNo": "",
@@ -74,10 +102,12 @@ exports.unsetLegacyProfessionalFieldsByApplicationId = (applicationId) =>
     }
   });
 
-exports.deleteByApplicationId = (applicationId) =>
+exports.deleteByApplicationId = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const record = await SubscriptionDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
         applicationId,
       });
       if (!record) return reject(new Error("Subscription details not found"));
@@ -91,10 +121,12 @@ exports.deleteByApplicationId = (applicationId) =>
     }
   });
 
-exports.getByUserId = (userId) =>
+exports.getByUserId = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId,
         "meta.deleted": { $ne: true },
         "meta.isActive": true,
@@ -106,15 +138,14 @@ exports.getByUserId = (userId) =>
     }
   });
 
-exports.getByEmail = (email) =>
+exports.getByEmail = (tenantId, email) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // First find personal details by email to get userId
       const personalDetailsRecord = await personalDetails.findOne({
-        $or: [
-          { "contactInfo.personalEmail": email },
-          { "contactInfo.workEmail": email },
-        ],
+        tenantId: scopedTenantId,
+        ...emailQuery(email),
       });
 
       if (!personalDetailsRecord) {
@@ -124,6 +155,7 @@ exports.getByEmail = (email) =>
 
       // Then find subscription details by userId
       const result = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId: personalDetailsRecord._id,
       });
       resolve(result);
@@ -133,11 +165,13 @@ exports.getByEmail = (email) =>
     }
   });
 
-exports.updateByUserId = (userId, updateData) =>
+exports.updateByUserId = (tenantId, userId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      delete updateData.tenantId;
       const record = await SubscriptionDetails.findOneAndUpdate(
-        { userId },
+        { tenantId: scopedTenantId, userId },
         updateData,
         {
           new: true,
@@ -155,15 +189,15 @@ exports.updateByUserId = (userId, updateData) =>
     }
   });
 
-exports.updateByEmail = (email, updateData) =>
+exports.updateByEmail = (tenantId, email, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      delete updateData.tenantId;
       // First find personal details by email to get userId
       const personalDetailsRecord = await personalDetails.findOne({
-        $or: [
-          { "contactInfo.personalEmail": email },
-          { "contactInfo.workEmail": email },
-        ],
+        tenantId: scopedTenantId,
+        ...emailQuery(email),
       });
 
       if (!personalDetailsRecord) {
@@ -172,7 +206,7 @@ exports.updateByEmail = (email, updateData) =>
 
       // Then update subscription details by userId
       const record = await SubscriptionDetails.findOneAndUpdate(
-        { userId: personalDetailsRecord._id },
+        { tenantId: scopedTenantId, userId: personalDetailsRecord._id },
         updateData,
         {
           new: true,
@@ -187,10 +221,14 @@ exports.updateByEmail = (email, updateData) =>
     }
   });
 
-exports.deleteByUserId = (userId) =>
+exports.deleteByUserId = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
-      const record = await SubscriptionDetails.findOneAndDelete({ userId });
+      const scopedTenantId = requireTenantId(tenantId);
+      const record = await SubscriptionDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
+        userId,
+      });
       if (!record) return reject(new Error("Subscription details not found"));
       resolve(record);
     } catch (error) {
@@ -202,15 +240,14 @@ exports.deleteByUserId = (userId) =>
     }
   });
 
-exports.deleteByEmail = (email) =>
+exports.deleteByEmail = (tenantId, email) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // First find personal details by email to get userId
       const personalDetailsRecord = await personalDetails.findOne({
-        $or: [
-          { "contactInfo.personalEmail": email },
-          { "contactInfo.workEmail": email },
-        ],
+        tenantId: scopedTenantId,
+        ...emailQuery(email),
       });
 
       if (!personalDetailsRecord) {
@@ -219,6 +256,7 @@ exports.deleteByEmail = (email) =>
 
       // Then delete subscription details by userId
       const record = await SubscriptionDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
         userId: personalDetailsRecord._id,
       });
       if (!record) return reject(new Error("Subscription details not found"));
@@ -229,10 +267,12 @@ exports.deleteByEmail = (email) =>
     }
   });
 
-exports.findDeletedByUserId = (userId) =>
+exports.findDeletedByUserId = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId,
         "meta.deleted": true,
       });
@@ -246,15 +286,14 @@ exports.findDeletedByUserId = (userId) =>
     }
   });
 
-exports.findDeletedByEmail = (email) =>
+exports.findDeletedByEmail = (tenantId, email) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // First find personal details by email to get userId
       const personalDetailsRecord = await personalDetails.findOne({
-        $or: [
-          { "contactInfo.personalEmail": email },
-          { "contactInfo.workEmail": email },
-        ],
+        tenantId: scopedTenantId,
+        ...emailQuery(email),
       });
 
       if (!personalDetailsRecord) {
@@ -264,6 +303,7 @@ exports.findDeletedByEmail = (email) =>
 
       // Then find deleted subscription details by userId
       const result = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId: personalDetailsRecord._id,
         "meta.deleted": true,
       });
@@ -277,14 +317,15 @@ exports.findDeletedByEmail = (email) =>
     }
   });
 
-exports.restoreByUserId = (userId, updateData) =>
+exports.restoreByUserId = (tenantId, userId, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
-      // Remove meta from updateData to avoid conflicts
-      const { meta, ...dataWithoutMeta } = updateData;
+      const scopedTenantId = requireTenantId(tenantId);
+      // Remove meta (and tenantId) from updateData to avoid conflicts
+      const { meta, tenantId: _ignoredTenant, ...dataWithoutMeta } = updateData;
 
       const record = await SubscriptionDetails.findOneAndUpdate(
-        { userId, "meta.deleted": true },
+        { tenantId: scopedTenantId, userId, "meta.deleted": true },
         {
           ...dataWithoutMeta,
           "meta.deleted": false,
@@ -305,27 +346,30 @@ exports.restoreByUserId = (userId, updateData) =>
     }
   });
 
-exports.restoreByEmail = (email, updateData) =>
+exports.restoreByEmail = (tenantId, email, updateData) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // First find personal details by email to get userId
       const personalDetailsRecord = await personalDetails.findOne({
-        $or: [
-          { "contactInfo.personalEmail": email },
-          { "contactInfo.workEmail": email },
-        ],
+        tenantId: scopedTenantId,
+        ...emailQuery(email),
       });
 
       if (!personalDetailsRecord) {
         return reject(new Error("Personal details not found for this email"));
       }
 
-      // Remove meta from updateData to avoid conflicts
-      const { meta, ...dataWithoutMeta } = updateData;
+      // Remove meta (and tenantId) from updateData to avoid conflicts
+      const { meta, tenantId: _ignoredTenant, ...dataWithoutMeta } = updateData;
 
       // Then restore subscription details by userId
       const record = await SubscriptionDetails.findOneAndUpdate(
-        { userId: personalDetailsRecord._id, "meta.deleted": true },
+        {
+          tenantId: scopedTenantId,
+          userId: personalDetailsRecord._id,
+          "meta.deleted": true,
+        },
         {
           ...dataWithoutMeta,
           "meta.deleted": false,
@@ -346,10 +390,12 @@ exports.restoreByEmail = (email, updateData) =>
     }
   });
 
-exports.checkifSoftDeleted = (userId) =>
+exports.checkifSoftDeleted = (tenantId, userId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const result = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId,
         "meta.deleted": true,
       });
@@ -363,20 +409,23 @@ exports.checkifSoftDeleted = (userId) =>
     }
   });
 
-exports.getApplicationById = (applicationId) =>
+exports.getApplicationById = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // Try lowercase first, then uppercase for backward compatibility
       let record = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         applicationId: applicationId,
       });
-      
+
       if (!record) {
         record = await SubscriptionDetails.findOne({
+          tenantId: scopedTenantId,
           ApplicationId: applicationId,
         });
       }
-      
+
       resolve(record);
     } catch (error) {
       console.error(
@@ -387,22 +436,25 @@ exports.getApplicationById = (applicationId) =>
     }
   });
 
-exports.getByUserIdAndApplicationId = (userId, applicationId) =>
+exports.getByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // Try lowercase first, then uppercase for backward compatibility
       let record = await SubscriptionDetails.findOne({
+        tenantId: scopedTenantId,
         userId: userId,
         applicationId: applicationId,
       });
-      
+
       if (!record) {
         record = await SubscriptionDetails.findOne({
+          tenantId: scopedTenantId,
           userId: userId,
           ApplicationId: applicationId,
         });
       }
-      
+
       resolve(record);
     } catch (error) {
       console.error(
@@ -413,22 +465,33 @@ exports.getByUserIdAndApplicationId = (userId, applicationId) =>
     }
   });
 
-exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
+exports.updateByUserIdAndApplicationId = (
+  tenantId,
+  userId,
+  applicationId,
+  updateData
+) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
+      delete updateData.tenantId;
       // Try lowercase first, then uppercase for backward compatibility
       let record = await SubscriptionDetails.findOneAndUpdate(
-        { userId: userId, applicationId: applicationId },
+        { tenantId: scopedTenantId, userId: userId, applicationId: applicationId },
         updateData,
         {
           new: true,
           runValidators: true,
         }
       );
-      
+
       if (!record) {
         record = await SubscriptionDetails.findOneAndUpdate(
-          { userId: userId, ApplicationId: applicationId },
+          {
+            tenantId: scopedTenantId,
+            userId: userId,
+            ApplicationId: applicationId,
+          },
           updateData,
           {
             new: true,
@@ -436,7 +499,7 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
           }
         );
       }
-      
+
       if (!record) return reject(new Error("Subscription details not found"));
       resolve(record);
     } catch (error) {
@@ -448,22 +511,25 @@ exports.updateByUserIdAndApplicationId = (userId, applicationId, updateData) =>
     }
   });
 
-exports.deleteByUserIdAndApplicationId = (userId, applicationId) =>
+exports.deleteByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // Try lowercase first, then uppercase for backward compatibility
       let record = await SubscriptionDetails.findOneAndDelete({
+        tenantId: scopedTenantId,
         userId: userId,
         applicationId: applicationId,
       });
-      
+
       if (!record) {
         record = await SubscriptionDetails.findOneAndDelete({
+          tenantId: scopedTenantId,
           userId: userId,
           ApplicationId: applicationId,
         });
       }
-      
+
       if (!record) return reject(new Error("Subscription details not found"));
       resolve(record);
     } catch (error) {

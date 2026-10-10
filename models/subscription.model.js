@@ -7,6 +7,9 @@ const {
 
 const SubscriptionSchema = new mongoose.Schema(
   {
+    // Owning tenant. Always stamped from the trusted auth context (or the
+    // event envelope for listener-created rows); never from body/query.
+    tenantId: { type: String, required: true, trim: true },
     applicationId: { type: String, required: true },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -80,7 +83,11 @@ const SubscriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for frequently queried field
+// Tenant-leading compound indexes back every tenant-scoped lookup. The legacy
+// single-field index stays until the tenantId backfill has run everywhere
+// (see scripts/migrations/README-tenantId-backfill.md).
+SubscriptionSchema.index({ tenantId: 1, applicationId: 1 });
+SubscriptionSchema.index({ tenantId: 1, userId: 1 });
 SubscriptionSchema.index({ applicationId: 1 });
 
 module.exports = mongoose.model("subscriptionDetails", SubscriptionSchema);

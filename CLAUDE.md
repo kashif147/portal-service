@@ -4,7 +4,13 @@
 self-service portal's "apply for membership" flow (personal details → professional details
 → subscription/payment choice → payment → CRM review). It also accepts CRM-staff-created
 applications (an INMO staff member creating an application on a member's behalf). It owns
-its own MongoDB via Mongoose. No test suite exists; don't invent test commands.
+its own MongoDB via Mongoose. Tests: `npm test` (node:test, `tests/*.test.js`) — HTTP-level
+tenant-isolation + RabbitMQ tenant-contract tests against the real app with in-memory model
+fakes (`tests/helpers/`); set `LOG_ROOT` to an absolute temp dir when running them.
+
+Every application row carries a required `tenantId` (trusted auth context only, via
+`helpers/tenantScope.js`); every handler takes `tenantId` as its first argument. See
+`scripts/migrations/README-tenantId-backfill.md` before deploying to a DB with legacy rows.
 
 The single most important thing to know before changing anything here: application status
 past `in-progress` is driven entirely by inbound RabbitMQ events from account-service and

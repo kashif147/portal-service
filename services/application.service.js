@@ -11,9 +11,9 @@ class ApplicationService {
    * @param {Array} statusFilters - Array of status values to filter by
    * @returns {Promise<Array>} Array of applications
    */
-  async getAllApplications(statusFilters = []) {
+  async getAllApplications(tenantId, statusFilters = []) {
     try {
-      return await applicationHandler.getAllApplications(statusFilters);
+      return await applicationHandler.getAllApplications(tenantId, statusFilters);
     } catch (error) {
       console.error("ApplicationService [getAllApplications] Error:", error);
       throw error;
@@ -25,13 +25,13 @@ class ApplicationService {
    * @param {string} applicationId - Application ID
    * @returns {Promise<Object>} Application details
    */
-  async getApplicationById(applicationId) {
+  async getApplicationById(tenantId, applicationId) {
     try {
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
-      return await applicationHandler.getApplicationById(applicationId);
+      return await applicationHandler.getApplicationById(tenantId, applicationId);
     } catch (error) {
       console.error("ApplicationService [getApplicationById] Error:", error);
       throw error;
@@ -47,6 +47,7 @@ class ApplicationService {
    * @returns {Promise<Object>} Updated application
    */
   async updateApplicationStatus(
+    tenantId,
     applicationId,
     newStatus,
     approvedBy,
@@ -77,6 +78,7 @@ class ApplicationService {
       }
 
       return await applicationHandler.updateApplicationStatus(
+        tenantId,
         applicationId,
         normalizedStatus,
         approvedBy,
@@ -96,9 +98,10 @@ class ApplicationService {
    * @param {Array} statusFilters - Array of status values to filter by
    * @returns {Promise<Array>} Array of applications with complete details
    */
-  async getAllApplicationsWithDetails(statusFilters = []) {
+  async getAllApplicationsWithDetails(tenantId, statusFilters = []) {
     try {
       return await applicationHandler.getAllApplicationsWithDetails(
+        tenantId,
         statusFilters
       );
     } catch (error) {
@@ -115,13 +118,16 @@ class ApplicationService {
    * @param {string} applicationId - Application ID
    * @returns {Promise<Object>} Application with complete details
    */
-  async getApplicationWithDetails(applicationId) {
+  async getApplicationWithDetails(tenantId, applicationId) {
     try {
       if (!applicationId) {
         throw AppError.badRequest("Application ID is required");
       }
 
-      return await applicationHandler.getApplicationWithDetails(applicationId);
+      return await applicationHandler.getApplicationWithDetails(
+        tenantId,
+        applicationId
+      );
     } catch (error) {
       console.error(
         "ApplicationService [getApplicationWithDetails] Error:",

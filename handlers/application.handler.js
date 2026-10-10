@@ -2,6 +2,7 @@ const PersonalDetails = require("../models/personal.details.model");
 const ProfessionalDetails = require("../models/professional.details.model");
 const SubscriptionDetails = require("../models/subscription.model");
 const { APPLICATION_STATUS } = require("../constants/enums");
+const { requireTenantId } = require("../helpers/tenantScope.js");
 const {
   stampPersonalInfoFullName,
   enrichApplicationRowPersonalFullName,
@@ -34,10 +35,11 @@ async function buildProfessionalPayload(
   };
 }
 
-exports.getAllApplications = (statusFilters = []) =>
+exports.getAllApplications = (tenantId, statusFilters = []) =>
   new Promise(async (resolve, reject) => {
     try {
-      let query = {};
+      const scopedTenantId = requireTenantId(tenantId);
+      let query = { tenantId: scopedTenantId };
 
       // If status filters are provided, filter by them
       // Normalize to lowercase to handle both cases
@@ -59,10 +61,12 @@ exports.getAllApplications = (statusFilters = []) =>
     }
   });
 
-exports.getApplicationById = (applicationId) =>
+exports.getApplicationById = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const application = await PersonalDetails.findOne({
+        tenantId: scopedTenantId,
         applicationId: applicationId,
       })
         .populate("userId", "name email")
@@ -85,6 +89,7 @@ exports.getApplicationById = (applicationId) =>
   });
 
 exports.updateApplicationStatus = (
+  tenantId,
   applicationId,
   newStatus,
   approvedBy,
@@ -92,6 +97,7 @@ exports.updateApplicationStatus = (
 ) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       // Normalize status to lowercase to ensure consistency
       const normalizedStatus = newStatus?.toLowerCase();
       const updateData = {
@@ -109,7 +115,7 @@ exports.updateApplicationStatus = (
       }
 
       const result = await PersonalDetails.findOneAndUpdate(
-        { applicationId: applicationId },
+        { tenantId: scopedTenantId, applicationId: applicationId },
         { $set: updateData },
         { new: true, runValidators: true }
       );
@@ -129,11 +135,11 @@ exports.updateApplicationStatus = (
         normalizedStatus === APPLICATION_STATUS.REJECTED
       ) {
         await ProfessionalDetails.updateMany(
-          { applicationId },
+          { tenantId: scopedTenantId, applicationId },
           { $set: { "meta.isActive": active } }
         );
         await SubscriptionDetails.updateMany(
-          { applicationId },
+          { tenantId: scopedTenantId, applicationId },
           { $set: { "meta.isActive": active } }
         );
       }
@@ -151,14 +157,24 @@ exports.updateApplicationStatus = (
     }
   });
 
-exports.getApplicationWithDetails = (applicationId) =>
+exports.getApplicationWithDetails = (tenantId, applicationId) =>
   new Promise(async (resolve, reject) => {
     try {
+      const scopedTenantId = requireTenantId(tenantId);
       const [personalDetails, professionalDetails, subscriptionDetails] =
         await Promise.all([
-          PersonalDetails.findOne({ applicationId: applicationId }),
-          ProfessionalDetails.findOne({ applicationId: applicationId }),
-          SubscriptionDetails.findOne({ applicationId: applicationId }),
+          PersonalDetails.findOne({
+            tenantId: scopedTenantId,
+            applicationId: applicationId,
+          }),
+          ProfessionalDetails.findOne({
+            tenantId: scopedTenantId,
+            applicationId: applicationId,
+          }),
+          SubscriptionDetails.findOne({
+            tenantId: scopedTenantId,
+            applicationId: applicationId,
+          }),
         ]);
 
       if (!personalDetails) {
@@ -215,10 +231,11 @@ exports.getApplicationWithDetails = (applicationId) =>
     }
   });
 
-exports.getAllApplicationsWithDetails = (statusFilters = []) =>
+exports.getAllApplicationsWithDetails = (tenantId, statusFilters = []) =>
   new Promise(async (resolve, reject) => {
     try {
-      let query = {};
+      const scopedTenantId = requireTenantId(tenantId);
+      let query = { tenantId: scopedTenantId };
 
       if (statusFilters && statusFilters.length > 0) {
         query.applicationStatus = { $in: statusFilters };
@@ -234,9 +251,11 @@ exports.getAllApplicationsWithDetails = (statusFilters = []) =>
             const [professionalDetails, subscriptionDetails] =
               await Promise.all([
                 ProfessionalDetails.findOne({
+                  tenantId: scopedTenantId,
                   applicationId: application.applicationId,
                 }),
                 SubscriptionDetails.findOne({
+                  tenantId: scopedTenantId,
                   applicationId: application.applicationId,
                 }),
               ]);
