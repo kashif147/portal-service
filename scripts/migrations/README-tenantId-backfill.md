@@ -41,7 +41,11 @@ approval events for those rows get logged as "not found" and are skipped. So
    `{ applicationId: 1 }` (unique on personaldetails) and `{ userId: 1 }`
    indexes. Drop them only after a soak (step 6).
 2. **Dry-run the backfill**: `node scripts/migrations/backfill-tenantId.js ...`
-   with no `--apply`. Review the before/after counts.
+   with no `--apply`. Review the before/after counts and the per-tenant
+   `byTenant` distribution. The script exits with code 2 and logs `STOP` when
+   a child row's `applicationId` belongs to personalDetails rows tagged with
+   more than one tenant (`ambiguous`); those rows are never written. Resolve
+   them before `--apply`. Output is aggregate only (no applicationIds).
 3. **Run the backfill with `--apply`.** It only touches rows whose `tenantId` is
    missing, null or `""`, so it is idempotent and safe to re-run.
 4. **Verify** that every collection reports `missingTenant: 0`. Re-run the dry-run;

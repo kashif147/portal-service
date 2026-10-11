@@ -75,9 +75,18 @@ function log(msg, meta) {
 async function report(db) {
   const counts = {};
   for (const name of COLLECTIONS) {
+    // tenantId values are tenant identifiers, not member data; counts only.
+    const byTenant = await db
+      .collection(name)
+      .aggregate([
+        { $match: { tenantId: { $exists: true, $nin: [null, ""] } } },
+        { $group: { _id: "$tenantId", n: { $sum: 1 } } },
+      ])
+      .toArray();
     counts[name] = {
       total: await db.collection(name).countDocuments({}),
       missingTenant: await db.collection(name).countDocuments(missingTenant()),
+      byTenant: Object.fromEntries(byTenant.map((t) => [String(t._id), t.n])),
     };
   }
   return counts;
@@ -89,27 +98,40 @@ const CHILDREN = ["professionaldetails", "subscriptiondetails"];
 const COLLECTIONS = [PERSONAL, ...CHILDREN];
 
 async function propagateFromPersonal(db, apply) {
-  let updated = 0;
+  const out = { rows: 0, ambiguous: 0, noApplicationId: 0, noTaggedParent: 0 };
   for (const child of CHILDREN) {
     const cursor = db
       .collection(child)
       .find(missingTenant(), { projection: { _id: 1, applicationId: 1 } });
     for await (const row of cursor) {
-      if (!row.applicationId) continue;
-      const parent = await db.collection(PERSONAL).findOne(
-        { applicationId: row.applicationId, tenantId: { $nin: [null, ""], $exists: true } },
-        { projection: { tenantId: 1 } }
-      );
-      if (!parent) continue;
-      updated += 1;
+      if (!row.applicationId) {
+        out.noApplicationId += 1;
+        continue;
+      }
+      const parentTenants = (
+        await db.collection(PERSONAL).distinct("tenantId", {
+          applicationId: row.applicationId,
+          tenantId: { $nin: [null, ""], $exists: true },
+        })
+      ).map(String);
+      if (parentTenants.length > 1) {
+        // Same applicationId tagged with more than one tenant: never guess.
+        out.ambiguous += 1;
+        continue;
+      }
+      if (parentTenants.length === 0) {
+        out.noTaggedParent += 1;
+        continue;
+      }
+      out.rows += 1;
       if (apply) {
         await db
           .collection(child)
-          .updateOne({ _id: row._id, ...missingTenant() }, { $set: { tenantId: parent.tenantId } });
+          .updateOne({ _id: row._id, ...missingTenant() }, { $set: { tenantId: parentTenants[0] } });
       }
     }
   }
-  return updated;
+  return out;
 }
 
 async function singleTenant(db, { tenant, confirmSingleTenant, apply }) {
@@ -180,7 +202,12 @@ async function profileHttp(db, { tenantTokens, apply }) {
       unresolved.push({ applicationId: row.applicationId, matches: hits.length });
     }
   }
-  return { resolved: resolved.length, unresolved };
+  // Aggregate only: applicationIds are not logged.
+  return {
+    resolved: resolved.length,
+    unresolved: unresolved.length,
+    ambiguous: unresolved.filter((u) => u.matches > 1).length,
+  };
 }
 
 async function main() {
@@ -195,19 +222,22 @@ async function main() {
   try {
     log(`mode=${args.apply ? "APPLY" : "DRY-RUN"} strategy=${args.strategy}`);
     log("before", await report(db));
-    log("phase1 children inheriting parent tenant", {
-      rows: await propagateFromPersonal(db, args.apply),
-    });
+    const phase1 = await propagateFromPersonal(db, args.apply);
+    log("phase1 children inheriting parent tenant", phase1);
     const phase2 =
       args.strategy === "single-tenant"
         ? await singleTenant(db, args)
         : await profileHttp(db, args);
     log("phase2", phase2);
-    log("phase3 children inheriting parent tenant", {
-      rows: await propagateFromPersonal(db, args.apply),
-    });
+    // In a dry run phase 2 wrote nothing, so this re-reports phase 1 as-is.
+    const phase3 = await propagateFromPersonal(db, args.apply);
+    log("phase3 children inheriting parent tenant", phase3);
     log("after", await report(db));
     if (!args.apply) log("DRY-RUN: nothing was written. Re-run with --apply.");
+    if (phase1.ambiguous || phase3.ambiguous || phase2.ambiguous) {
+      log("STOP: rows map to more than one tenant; resolve them before --apply");
+      process.exitCode = 2;
+    }
   } finally {
     await mongoose.disconnect();
   }
@@ -220,4 +250,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, missingTenant };
+module.exports = { parseArgs, missingTenant, propagateFromPersonal };
