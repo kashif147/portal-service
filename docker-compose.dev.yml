@@ -26,6 +26,10 @@ services:
     expose:
       - "4001"
 
+    environment:
+      LOG_ROOT: /var/log/projectshell
+      POLICY_MW_LOG_SERVICE_NAME: policy-middleware-portal
+
     volumes:
       - ../../logs:/var/log/projectshell
 
