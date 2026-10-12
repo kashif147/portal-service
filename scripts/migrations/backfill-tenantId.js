@@ -45,6 +45,7 @@
  */
 
 const mongoose = require("mongoose");
+const { assertMigrationTarget } = require("../lib/migrationTargetGuard");
 
 const MISSING = { $in: [null, ""] };
 const missingTenant = () => ({
@@ -220,6 +221,7 @@ async function main() {
   await mongoose.connect(process.env.MONGO_URI);
   const db = mongoose.connection.db;
   try {
+    assertMigrationTarget(mongoose.connection.name, process.argv.slice(2), { apply: args.apply });
     log(`mode=${args.apply ? "APPLY" : "DRY-RUN"} strategy=${args.strategy}`);
     log("before", await report(db));
     const phase1 = await propagateFromPersonal(db, args.apply);
