@@ -145,7 +145,8 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
-    console.log("Token (first 20 chars):", token.substring(0, 20) + "...");
+    // Never the token or any part of it.
+    console.log("Auth path: bearer");
 
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET environment variable is not set!");

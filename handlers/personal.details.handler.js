@@ -1,6 +1,7 @@
 const PersonalDetails = require("../models/personal.details.model");
 const { requireTenantId } = require("../helpers/tenantScope.js");
 const { stampPersonalInfoFullName } = require("../helpers/personal.info.fullName.js");
+const { safeErrorFields } = require("../helpers/safeErrorLog.js");
 
 const generateFullAddress = (contactInfo) => {
   if (!contactInfo) return "";
@@ -97,7 +98,7 @@ exports.create = (tenantId, data) =>
       });
       resolve(record);
     } catch (error) {
-      console.error("PersonalDetailsHandler [create] Error:", error);
+      console.error("PersonalDetailsHandler [create] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -125,7 +126,7 @@ exports.getByUserId = (tenantId, userId) =>
       
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [getByUserId] Error:", error);
+      console.error("PersonalDetailsHandler [getByUserId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -143,7 +144,7 @@ exports.getByEmail = (tenantId, email) =>
       });
       resolve(result);
     } catch (error) {
-      console.error("PersonalDetailsHandler [getByEmail] Error:", error);
+      console.error("PersonalDetailsHandler [getByEmail] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -158,10 +159,7 @@ exports.getApplicationById = (tenantId, applicationId) =>
       });
       resolve(result);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [getApplicationById] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [getApplicationById] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -177,10 +175,7 @@ exports.getByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
       });
       resolve(result);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [getByUserIdAndApplicationId] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [getByUserIdAndApplicationId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -219,10 +214,7 @@ exports.updateByApplicationId = (tenantId, applicationId, updateData) =>
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [updateByApplicationId] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [updateByApplicationId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -266,10 +258,7 @@ exports.updateByUserIdAndApplicationId = (
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [updateByUserIdAndApplicationId] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [updateByUserIdAndApplicationId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -285,10 +274,7 @@ exports.deleteByApplicationId = (tenantId, applicationId) =>
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [deleteByApplicationId] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [deleteByApplicationId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -305,10 +291,7 @@ exports.deleteByUserIdAndApplicationId = (tenantId, userId, applicationId) =>
       if (!record) return reject(new Error("Personal details not found"));
       resolve(record);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [deleteByUserIdAndApplicationId] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [deleteByUserIdAndApplicationId] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -324,10 +307,7 @@ exports.updateApplicationStatus = (tenantId, applicationId, status) =>
       );
       resolve(result);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [updateApplicationStatus] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [updateApplicationStatus] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -369,10 +349,7 @@ exports.getByUserIdForPortal = (tenantId, userId) =>
       
       resolve(result);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [getByUserIdForPortal] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [getByUserIdForPortal] Error:", safeErrorFields(error));
       reject(error);
     }
   });
@@ -397,10 +374,7 @@ exports.getActiveByUserIdForPortal = (tenantId, userId) =>
 
       resolve(result);
     } catch (error) {
-      console.error(
-        "PersonalDetailsHandler [getActiveByUserIdForPortal] Error:",
-        error
-      );
+      console.error("PersonalDetailsHandler [getActiveByUserIdForPortal] Error:", safeErrorFields(error));
       reject(error);
     }
   });
