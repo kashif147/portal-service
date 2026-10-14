@@ -21,14 +21,13 @@ function extractUserAndCreatorContext(req) {
     // Keep original userType, don't override
   }
 
-  // Debug logging to help troubleshoot user context issues
-  console.log("=== extractUserAndCreatorContext DEBUG ===");
-  console.log("req.user:", JSON.stringify(req.user, null, 2));
-  console.log("userType:", userType);
-  console.log("creatorId:", creatorId);
-  console.log("userId:", userId);
-  console.log("AUTH_BYPASS_ENABLED:", process.env.AUTH_BYPASS_ENABLED);
-  console.log("=== END DEBUG ===");
+  // Internal identifiers only: req.user also carries the email, roles and permissions, which
+  // are never logged.
+  console.log("User context:", {
+    userId: userId ?? null,
+    tenantId: req.ctx?.tenantId || req.tenantId || null,
+    userType: userType ?? null,
+  });
 
   return {
     userType,

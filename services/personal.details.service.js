@@ -1,4 +1,5 @@
 const personalDetailsHandler = require("../handlers/personal.details.handler");
+const { safeErrorFields } = require("../helpers/safeErrorLog.js");
 const { AppError } = require("../errors/AppError");
 const { APPLICATION_STATUS } = require("../constants/enums");
 const {
@@ -27,7 +28,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [createPersonalDetails] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -70,7 +71,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [getPersonalDetails] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -144,7 +145,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [updatePersonalDetails] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -182,7 +183,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [deletePersonalDetails] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -207,7 +208,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [getMyPersonalDetails] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -233,7 +234,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [checkPersonalDetailsExist] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
@@ -284,7 +285,7 @@ class PersonalDetailsService {
     } catch (error) {
       console.error(
         "PersonalDetailsService [getApplicationStatus] Error:",
-        error
+        safeErrorFields(error)
       );
       throw error;
     }
