@@ -9,6 +9,30 @@ const {
   enrichPersonalInfoFullNameOnDocument,
 } = require("../helpers/personal.info.fullName.js");
 
+/*
+ * Logging: ids, outcomes and error names/codes only. Request headers (Authorization, cookies),
+ * bodies, validated data, req.user / req.ctx, personal-details records and whole error objects
+ * are never logged - they carry tokens and personal data (email, names, DOB, address, mobile).
+ * Validation/database errors log field names only: Joi details[].path, Mongoose
+ * Object.keys(errors), duplicate key Object.keys(keyPattern). error.message is not logged where
+ * it can embed values.
+ */
+function safeErrorFields(error) {
+  const fields = { name: error?.name || null, code: error?.code ?? null };
+  if (error?.isJoi && Array.isArray(error.details)) {
+    fields.fields = error.details.map((d) => (Array.isArray(d.path) ? d.path.join(".") : String(d.path)));
+  } else if (error?.name === "ValidationError" && error.errors && typeof error.errors === "object") {
+    fields.fields = Object.keys(error.errors);
+  } else if (error?.code === 11000) {
+    fields.fields = Object.keys(error.keyPattern || {});
+  }
+  return fields;
+}
+
+function logError(operation, error, ids = {}) {
+  console.error(`PersonalDetailsController [${operation}] Error:`, { ...ids, ...safeErrorFields(error) });
+}
+
 exports.createPersonalDetails = async (req, res, next) => {
   try {
     const tenantId = getTrustedTenantId(req);
@@ -16,10 +40,9 @@ exports.createPersonalDetails = async (req, res, next) => {
       return next(AppError.forbidden("Tenant context required"));
     }
     console.log("=== createPersonalDetails START ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
 
     const { userId, creatorId, userType } = extractUserAndCreatorContext(req);
-    console.log("Extracted context:", { userId, creatorId, userType });
+    console.log("Extracted context:", { tenantId, userId, creatorId, userType });
 
     if (!userId && userType !== "CRM") {
       console.log("User ID is missing in createPersonalDetails");
@@ -32,7 +55,7 @@ exports.createPersonalDetails = async (req, res, next) => {
 
     const validatedData =
       await joischemas.personal_details_create.validateAsync(req.body);
-    console.log("Validation passed:", JSON.stringify(validatedData, null, 2));
+    console.log("Validation passed");
 
     // Validate userType early to prevent invalid userTypes from bypassing duplicate checks
     if (!userType) {
@@ -101,19 +124,11 @@ exports.createPersonalDetails = async (req, res, next) => {
       }
     }
 
-    console.log(
-      "Calling personalDetailsService.createPersonalDetails with data:",
-      {
-        ...validatedData,
-        userId,
-        meta: {
-          createdBy: creatorId,
-          userType,
-          deleted: false,
-          isActive: true,
-        },
-      }
-    );
+    console.log("Calling personalDetailsService.createPersonalDetails", {
+      tenantId,
+      userId,
+      userType,
+    });
 
     const result = await personalDetailsService.createPersonalDetails(tenantId, {
       ...validatedData,
@@ -126,35 +141,31 @@ exports.createPersonalDetails = async (req, res, next) => {
       },
     });
 
-    console.log("=== createPersonalDetails SUCCESS ===");
+    console.log("=== createPersonalDetails SUCCESS ===", {
+      tenantId,
+      applicationId: result?.applicationId ?? null,
+    });
     enrichPersonalInfoFullNameOnDocument(result);
     return res.success(result);
   } catch (error) {
-    console.error("=== createPersonalDetails ERROR ===");
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-    console.error("Error details:", JSON.stringify(error, null, 2));
+    logError("createPersonalDetails", error);
 
     if (error.isJoi) {
-      console.error("Joi validation error:", error.details);
       return next(AppError.badRequest("Validation error: " + error.message));
     }
 
     if (error.name === "ValidationError") {
-      console.error("Mongoose validation error:", error.errors);
       return next(
         AppError.badRequest("Data validation error: " + error.message)
       );
     }
 
     if (error.code === 11000) {
-      console.error("Duplicate key error:", error.keyValue);
       return next(
         AppError.conflict("Personal details already exist for this user")
       );
     }
 
-    console.error("=== END ERROR ===");
     return next(error);
   }
 };
@@ -186,10 +197,7 @@ exports.getPersonalDetails = async (req, res, next) => {
     enrichPersonalInfoFullNameOnDocument(personalDetails);
     return res.success(personalDetails);
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [getPersonalDetails] Error:",
-      error
-    );
+    logError("getPersonalDetails", error);
     if (error.message === "Personal details not found") {
       return res.notFoundRecord("Personal details not found");
     }
@@ -229,10 +237,7 @@ exports.updatePersonalDetails = async (req, res, next) => {
     enrichPersonalInfoFullNameOnDocument(result);
     return res.success(result);
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [updatePersonalDetails] Error:",
-      error
-    );
+    logError("updatePersonalDetails", error);
     if (error.isJoi) {
       return next(AppError.badRequest("Validation error: " + error.message));
     }
@@ -265,10 +270,7 @@ exports.deletePersonalDetails = async (req, res, next) => {
 
     return res.success("Personal details deleted successfully");
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [deletePersonalDetails] Error:",
-      error
-    );
+    logError("deletePersonalDetails", error);
     if (error.message === "Personal details not found") {
       return res.notFoundRecord("Personal details not found");
     }
@@ -282,12 +284,9 @@ exports.getMyPersonalDetails = async (req, res, next) => {
       return next(AppError.forbidden("Tenant context required"));
     }
     console.log("=== getMyPersonalDetails START ===");
-    console.log("Request headers:", req.headers);
-    console.log("Request user:", req.user);
-    console.log("Request ctx:", req.ctx);
 
     const { userId, userType } = extractUserAndCreatorContext(req);
-    console.log("Extracted context:", { userId, userType });
+    console.log("Extracted context:", { tenantId, userId, userType });
 
     // Only allow PORTAL users to access this endpoint
     if (userType !== "PORTAL") {
@@ -296,10 +295,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
     }
 
     if (!userId) {
-      console.log("User ID check failed:", userId);
-      console.log("req.user object:", JSON.stringify(req.user, null, 2));
-      console.log("req.user.id:", req.user?.id);
-      console.log("req.user._id:", req.user?._id);
+      console.log("User ID check failed: no userId in the authenticated context");
       return next(
         AppError.badRequest(
           "User ID is required. Please ensure you are properly authenticated."
@@ -315,7 +311,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
       tenantId,
       userId
     );
-    console.log("Service response:", personalDetails);
+    console.log("Service response:", { found: Boolean(personalDetails) });
 
     if (!personalDetails) {
       console.log("No personal details found for user:", userId);
@@ -326,11 +322,7 @@ exports.getMyPersonalDetails = async (req, res, next) => {
     console.log("=== getMyPersonalDetails SUCCESS ===");
     return res.success(personalDetails);
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [getMyPersonalDetails] Error:",
-      error
-    );
-    console.error("Error stack:", error.stack);
+    logError("getMyPersonalDetails", error, { tenantId: getTrustedTenantId(req) });
     if (error.message === "Personal details not found") {
       return res.notFoundRecord("Personal details not found");
     }
@@ -360,10 +352,7 @@ exports.getApplicationStatus = async (req, res, next) => {
 
     return res.success(statusPayload);
   } catch (error) {
-    console.error(
-      "PersonalDetailsController [getApplicationStatus] Error:",
-      error
-    );
+    logError("getApplicationStatus", error);
     if (error.message === "Personal details not found") {
       return res.notFoundRecord("Personal details not found");
     }
