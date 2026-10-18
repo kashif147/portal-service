@@ -17,7 +17,8 @@ const OTHER = "aaaaaaaaaaaaaaaaaaaaaaaa";
 test("tenantContextWarn exists and is warn mode only", () => {
   assert.equal(typeof tenantContextWarn, "function");
   const src = read("middlewares/tenantContext.mw.js");
-  assert.match(src, /tenantContextMiddleware\(\{\s*mode:\s*"warn"\s*\}\)/);
+  assert.match(src, /tenantContextMiddleware\(\)/); // mode comes from TENANT_CONTEXT_MODE (default warn)
+  assert.ok(!/mode:\s*"warn"/.test(src), "no hard-coded warn override");
   assert.ok(!/mode:\s*"enforce"/.test(src));
 });
 

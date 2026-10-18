@@ -18,7 +18,7 @@ const { tenantContextMiddleware } = require("@membership/policy-middleware");
  * req.tenantId) — never from body/query/params — so the guard's re-pinned
  * trusted tenant aligns directly with controller behaviour.
  */
-const tenantContextWarn = tenantContextMiddleware({ mode: "warn" });
+const tenantContextWarn = tenantContextMiddleware();
 
 module.exports = {
   tenantContextWarn,
