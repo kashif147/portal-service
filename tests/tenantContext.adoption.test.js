@@ -44,7 +44,7 @@ test("guard re-pins req.tenantId to the trusted tenant and never blocks a mismat
     method: "POST",
     url: "/api/personal-details",
     originalUrl: "/api/personal-details",
-    headers: { "x-jwt-verified": "true", "x-tenant-id": TRUSTED },
+    headers: { "x-auth-source": "gateway", "x-jwt-verified": "true", "x-tenant-id": TRUSTED },
     ctx: { tenantId: TRUSTED },
     tenantId: OTHER,
     body: { tenantId: OTHER },
