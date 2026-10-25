@@ -12,6 +12,6 @@ test("DEV db passes; UAT db, mismatch, missing --expect-db on --apply are refuse
     assert.throws(() => assertMigrationTarget("Portal-Service", []), /not a DEV database/);
     assert.throws(() => assertMigrationTarget("portal-service-dev", ["--apply"]), /requires --expect-db/);
     assert.throws(() => assertMigrationTarget("portal-service-dev", ["--expect-db=Portal-Service"]), /--expect-db/);
-    assert.throws(() => assertMigrationTarget("portal-service-dev", ["--target-env=uat"]), /not approved/);
+    assert.throws(() => assertMigrationTarget("portal-service-dev", ["--target-env=uat"]), /requires DEPLOYMENT_ENV=uat/);
   } finally { console.log = orig; }
 });
